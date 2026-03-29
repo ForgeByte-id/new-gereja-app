@@ -82,35 +82,50 @@ jobs:
             sudo chown -R $USER:www-data $APP_ROOT
             cd $APP_ROOT
 
+            # Tambahkan safe directory agar git tidak error
             git config --global --add safe.directory $APP_ROOT
+            
             if [ ! -d ".git" ]; then
-              git clone https://github.com/ForgeByte-id/new-gereja-app.git .
+              # Gunakan SSH URL agar tidak ditanya username/password
+              git clone git@github.com:ForgeByte-id/new-gereja-app.git .
             fi
+
+            # Pastikan remote menggunakan SSH jika sebelumnya terlanjur HTTPS
+            git remote set-url origin git@github.com:ForgeByte-id/new-gereja-app.git
 
             git fetch origin master
             git reset --hard origin/master
 
+            # MASUK KE FOLDER LARAVEL (API)
             cd api
+            
+            # Setup Permission awal
             sudo chown -R $USER:www-data .
 
-            # Pastikan .env tersedia
             if [ ! -f .env ]; then
               cp .env.production .env || touch .env
             fi
 
+            # Install dependencies tanpa dev
             composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
             
+            # Generate key jika kosong
             if ! grep -q "^APP_KEY=base64" .env; then
               php artisan key:generate --force
             fi
             
+            # Jalankan database task
             php artisan migrate --force
+            
+            # Optimalisasi Cache
             php artisan optimize:clear
             php artisan config:cache
             php artisan route:cache
             
+            # Perbaiki Permission Folder Storage & Cache
             sudo chgrp -R www-data storage bootstrap/cache
             sudo chmod -R 775 storage bootstrap/cache
+            
             echo "✅ Laravel API Deployed!"
 
   # --- STEP 3: DEPLOY FLUTTER (Hanya jalan jika Test LULUS) ---
