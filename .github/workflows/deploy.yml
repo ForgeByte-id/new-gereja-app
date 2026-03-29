@@ -5,7 +5,51 @@ on:
     branches: [ master ]
 
 jobs:
+  # --- STEP 1: TESTING & ANALYSIS ---
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # A. Testing Laravel (PHP)
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, dom, curl, libxml, mysql
+          coverage: none
+
+      - name: Install PHP Dependencies
+        run: |
+          cd api
+          composer install --no-progress --no-interaction
+
+      - name: Run PHPUnit Tests
+        run: |
+          cd api
+          # Copy env testing jika ada, kalau tidak pakai .env.example
+          cp .env.example .env
+          php artisan key:generate
+          php artisan test --parallel # Menjalankan test Laravel
+
+      # B. Testing Flutter
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install Flutter Dependencies
+        run: flutter pub get
+
+      - name: Flutter Analyze
+        run: flutter analyze # Cek static analysis (linting)
+
+      - name: Flutter Test
+        run: flutter test # Jalankan unit test flutter jika ada
+
+  # --- STEP 2: DEPLOY LARAVEL (Hanya jalan jika Test LULUS) ---
   deploy-laravel:
+    needs: tests # Wajib nunggu job 'tests' sukses
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -16,52 +60,47 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            echo "🚀 Starting Laravel API Deployment (Monorepo)..."
+            set -e
+            echo "🚀 Starting Laravel API Deployment..."
             APP_ROOT="/var/www/gereja-gpiyehuda"
-            API_DIR="$APP_ROOT/api"
-            if [ ! -d "$API_DIR" ]; then
-              API_DIR="$APP_ROOT"
+            
+            sudo mkdir -p $APP_ROOT
+            sudo chown -R $USER:www-data $APP_ROOT
+            cd $APP_ROOT
+
+            git config --global --add safe.directory $APP_ROOT
+            if [ ! -d ".git" ]; then
+              git clone https://github.com/ForgeByte-id/new-gereja-app.git .
             fi
 
-            cd "$APP_ROOT"
-
-            # 1. Sync & Clean Code
-            git config --global --add safe.directory /var/www/gereja-gpiyehuda
             git fetch origin master
             git reset --hard origin/master
 
-            # --- POIN PENTING: MASUK KE FOLDER API ---
-            cd "$API_DIR"
-
-            # 2. Permissions Setup
+            cd api
             sudo chown -R $USER:www-data .
 
-            # 3. Setup Environment
             if [ ! -f .env ]; then
-              echo "📝 Creating .env from .env.production"
-              cp .env.production .env
+              cp .env.production .env || touch .env
             fi
 
-            # 4. Install Dependencies
-            echo "📦 Installing Composer dependencies..."
             composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
-
-            # 5. Laravel Optimization
-            if ! grep -q "^APP_KEY=" .env || grep -q "^APP_KEY=$" .env; then
-              php artisan key:generate --force --no-interaction
+            
+            if ! grep -q "^APP_KEY=base64" .env; then
+              php artisan key:generate --force
             fi
+            
             php artisan migrate --force
+            php artisan optimize:clear
             php artisan config:cache
             php artisan route:cache
             
-            # 6. Final Permissions
             sudo chgrp -R www-data storage bootstrap/cache
             sudo chmod -R 775 storage bootstrap/cache
-            
-            echo "✅ Laravel API Deployment Finished!"
+            echo "✅ Laravel API Deployed!"
 
+  # --- STEP 3: DEPLOY FLUTTER (Hanya jalan jika Test LULUS) ---
   deploy-flutter:
-    needs: deploy-laravel # Menunggu API beres dulu
+    needs: tests # Wajib nunggu job 'tests' sukses
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -71,28 +110,31 @@ jobs:
       
       - name: Build Flutter Web
         run: |
-          echo "🔨 Building Flutter Web Release..."
           flutter pub get
           flutter build web --release
 
-      - name: Deploy to VPS
+      - name: Deploy to VPS (SCP)
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           source: "build/web/*"
-          target: "/var/www/new-gpi-yehuda/public_html"
+          target: "/var/www/new-gpi-yehuda/public_html_tmp"
           strip_components: 2
           rm: true 
           
-      - name: Post-Deploy Clean Up
+      - name: Finalize Flutter
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            echo "🧹 Cleaning up Flutter web permissions..."
+            set -e
+            sudo rm -rf /var/www/new-gpi-yehuda/public_html
+            sudo mkdir -p /var/www/new-gpi-yehuda/public_html
+            sudo cp -r /var/www/new-gpi-yehuda/public_html_tmp/. /var/www/new-gpi-yehuda/public_html/
+            sudo rm -rf /var/www/new-gpi-yehuda/public_html_tmp
             sudo chown -R www-data:www-data /var/www/new-gpi-yehuda/public_html
-            echo "🚀 All systems are live!"
+            echo "🚀 Flutter Web is live!"
