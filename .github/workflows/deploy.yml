@@ -17,7 +17,13 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             echo "🚀 Starting Laravel API Deployment (Monorepo)..."
-            cd /var/www/gereja-gpiyehuda
+            APP_ROOT="/var/www/gereja-gpiyehuda"
+            API_DIR="$APP_ROOT/api"
+            if [ ! -d "$API_DIR" ]; then
+              API_DIR="$APP_ROOT"
+            fi
+
+            cd "$APP_ROOT"
 
             # 1. Sync & Clean Code
             git config --global --add safe.directory /var/www/gereja-gpiyehuda
@@ -25,7 +31,7 @@ jobs:
             git reset --hard origin/master
 
             # --- POIN PENTING: MASUK KE FOLDER API ---
-            cd api 
+            cd "$API_DIR"
 
             # 2. Permissions Setup
             sudo chown -R $USER:www-data .
@@ -41,7 +47,9 @@ jobs:
             composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
 
             # 5. Laravel Optimization
-            php artisan key:generate --force --no-interaction
+            if ! grep -q "^APP_KEY=" .env || grep -q "^APP_KEY=$" .env; then
+              php artisan key:generate --force --no-interaction
+            fi
             php artisan migrate --force
             php artisan config:cache
             php artisan route:cache
