@@ -100,6 +100,9 @@ jobs:
             sudo chown -R $USER:www-data .
             sudo chmod -R 775 bootstrap/cache storage
 
+            # 3.1 hapus .env lama untuk mencegah konflik, nanti akan digenerate ulang dari .env.production
+            rm -f .env
+
             # 4. Copy .env jika belum ada
             if [ ! -f .env ]; then
               cp .env.production .env || touch .env
