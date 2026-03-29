@@ -82,33 +82,41 @@ jobs:
             echo "🚀 Starting Laravel API Deployment..."
             APP_ROOT="/var/www/gereja-gpiyehuda"
             
-            # Pastikan permission folder benar sebelum git command
+            # 1. Masuk dan bersihkan kepemilikan folder
             sudo chown -R $USER:www-data $APP_ROOT
-            
             cd $APP_ROOT
 
-            # Daftarkan directory agar git tidak protes
             git config --global --add safe.directory $APP_ROOT
             
             echo "Pulling latest changes..."
-            # Gunakan sudo git jika masih bermasalah, tapi harusnya chown di atas sudah cukup
             git fetch origin master
             git reset --hard origin/master
 
+            # 2. Masuk ke folder API
             cd api
-            
-            # Pastikan folder storage & cache bisa ditulis Laravel
+
+            # 3. CRITICAL: Pastikan folder cache & storage ada SEBELUM composer install
+            mkdir -p bootstrap/cache storage/framework/sessions storage/framework/views storage/framework/cache
             sudo chown -R $USER:www-data .
-            
-            # Install & Optimize
+            sudo chmod -R 775 bootstrap/cache storage
+
+            # 4. Copy .env jika belum ada
+            if [ ! -f .env ]; then
+              cp .env.production .env || touch .env
+            fi
+
+            # 5. Composer install (sekarang harusnya aman karena folder sudah writable)
             composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
             
+            # 6. Database & Cache
             php artisan migrate --force
             php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
             
-            # Permission Final untuk Web Server
-            sudo chmod -R 775 storage bootstrap/cache
+            # 7. Permission final untuk Nginx/PHP-FPM
             sudo chgrp -R www-data storage bootstrap/cache
+            sudo chmod -R 775 storage bootstrap/cache
             
             echo "✅ Laravel API Deployed Successfully!"
 
