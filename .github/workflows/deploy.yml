@@ -41,17 +41,9 @@ jobs:
       - name: Run PHPUnit Tests
         run: |
           cd api
-          # Gunakan .env.test sebagai dasar, lalu ubah isinya untuk testing
+          # Gunakan .env.test sebagai dasar
           cp .env.test .env
-          
-          # Override config database ke MariaDB Service di runner
-          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/g' .env
-          sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/g' .env
-          sed -i 's/DB_PORT=.*/DB_PORT=3306/g' .env
-          sed -i 's/DB_DATABASE=.*/DB_DATABASE=gereja_api_test/g' .env
-          sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/g' .env
-          sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=/g' .env
-          
+
           php artisan key:generate
           # Jalankan migration sebelum test
           php artisan migrate --force
