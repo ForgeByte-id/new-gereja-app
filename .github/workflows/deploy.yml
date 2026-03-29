@@ -110,7 +110,7 @@ jobs:
             
             # 6. Database & Cache
             php artisan migrate --force
-            php artisan optimize:clear
+            php artisan optimize:clear || true
             php artisan config:cache
             php artisan route:cache
             
