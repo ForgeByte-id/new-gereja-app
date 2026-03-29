@@ -22,6 +22,8 @@ jobs:
       - name: Install PHP Dependencies
         run: |
           cd api
+          mkdir -p bootstrap/cache storage/framework/sessions storage/framework/views storage/framework/cache
+          chmod -R 775 bootstrap/cache storage
           composer install --no-progress --no-interaction
 
       - name: Run PHPUnit Tests
