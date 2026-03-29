@@ -80,56 +80,39 @@ jobs:
           script: |
             set -e
             echo "🚀 Starting Laravel API Deployment..."
-            
-            # Mendeklarasikan path
             APP_ROOT="/var/www/gereja-gpiyehuda"
             
-            # Register GitHub ke known_hosts VPS agar tidak error 'verification failed'
-            mkdir -p ~/.ssh
-            ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
-            
-            sudo mkdir -p $APP_ROOT
-            sudo chown -R $USER:www-data $APP_ROOT
             cd $APP_ROOT
 
+            # Daftarkan directory agar git tidak protes soal ownership
             git config --global --add safe.directory $APP_ROOT
             
-            # Menggunakan SSH URL untuk clone
-            if [ ! -d ".git" ]; then
-              git clone git@github.com:ForgeByte-id/new-gereja-app.git .
-            else
-              git remote set-url origin git@github.com:ForgeByte-id/new-gereja-app.git
-            fi
-
+            # Karena kamu sudah clone manual, kita cukup tarik perubahannya
+            echo "Pulling latest changes..."
             git fetch origin master
             git reset --hard origin/master
 
-            # Navigasi ke subfolder Laravel (API)
+            # Masuk ke folder Laravel (api)
             cd api
-            sudo chown -R $USER:www-data .
-
+            
+            # Pastikan env ada (pakai yang sudah ada di VPS atau copy dari production)
             if [ ! -f .env ]; then
               cp .env.production .env || touch .env
             fi
 
-            # Composer install tanpa paket dev
+            # Install & Optimize
             composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
             
-            if ! grep -q "^APP_KEY=base64" .env; then
-              php artisan key:generate --force
-            fi
-            
-            # Database & Optimize
             php artisan migrate --force
             php artisan optimize:clear
             php artisan config:cache
             php artisan route:cache
             
-            # Permission folder krusial
+            # Beri izin akses ke web server
             sudo chgrp -R www-data storage bootstrap/cache
             sudo chmod -R 775 storage bootstrap/cache
             
-            echo "✅ Laravel API Deployed!"
+            echo "✅ Laravel API Deployed Successfully!"
 
   # --- STEP 3: DEPLOY FLUTTER (Frontend) ---
   deploy-flutter:
