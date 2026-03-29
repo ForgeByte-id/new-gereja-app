@@ -11,6 +11,7 @@ use App\Models\EventDocumentation;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use ZipArchive;
 
 class EventController extends Controller
@@ -19,11 +20,13 @@ class EventController extends Controller
 
     public function categories(): JsonResponse
     {
-        $categories = EventCategory::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['code', 'name']);
+        $categories = Cache::remember('event_categories.active', 600, function () {
+            return EventCategory::query()
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(['code', 'name']);
+        });
 
         return $this->successResponse($categories, 'Daftar kategori event berhasil diambil');
     }

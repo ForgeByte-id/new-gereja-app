@@ -15,6 +15,7 @@ use App\Support\ApiResponse;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 
 class ServiceController extends Controller
@@ -54,29 +55,36 @@ class ServiceController extends Controller
 
     public function categories(): JsonResponse
     {
-        $categories = ServiceCategory::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['code', 'name']);
+        $categories = Cache::remember('service_categories.active', 600, function () {
+            return ServiceCategory::query()
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(['code', 'name']);
+        });
 
         return $this->successResponse($categories, 'Daftar kategori layanan berhasil diambil');
     }
 
     public function templates(): JsonResponse
     {
-        $templates = ServiceFormTemplate::query()
-            ->orderBy('category')
-            ->get(['id', 'category', 'name', 'fields', 'is_active']);
+        $templates = Cache::remember('service_templates.all', 600, function () {
+            return ServiceFormTemplate::query()
+                ->orderBy('category')
+                ->get(['id', 'category', 'name', 'fields', 'is_active']);
+        });
 
         return $this->successResponse($templates, 'Daftar template layanan berhasil diambil');
     }
 
     public function showTemplate(string $category): JsonResponse
     {
-        $template = ServiceFormTemplate::query()
-            ->where('category', $category)
-            ->first();
+        $cacheKey = 'service_templates.' . $category;
+        $template = Cache::remember($cacheKey, 600, function () use ($category) {
+            return ServiceFormTemplate::query()
+                ->where('category', $category)
+                ->first();
+        });
 
         if (! $template) {
             return $this->errorResponse('Template layanan tidak ditemukan', 'NOT_FOUND', 404);
@@ -255,6 +263,9 @@ class ServiceController extends Controller
             ]
         );
 
+        Cache::forget('service_templates.all');
+        Cache::forget('service_templates.' . $targetCategory);
+
         return $this->successResponse($template, 'Template layanan berhasil disimpan');
     }
 
@@ -366,6 +377,9 @@ class ServiceController extends Controller
         }
 
         $template->delete();
+
+        Cache::forget('service_templates.all');
+        Cache::forget('service_templates.' . $category);
 
         return $this->successResponse(null, 'Template layanan berhasil dihapus');
     }

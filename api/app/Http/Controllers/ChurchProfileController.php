@@ -6,6 +6,7 @@ use App\Http\Requests\Church\UpsertChurchProfileRequest;
 use App\Models\ChurchProfile;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 
 class ChurchProfileController extends Controller
 {
@@ -13,14 +14,18 @@ class ChurchProfileController extends Controller
 
     public function show(): JsonResponse
     {
-        $profile = ChurchProfile::query()->first();
+        $profile = Cache::remember('church_profile', 600, function () {
+            $profile = ChurchProfile::query()->first();
 
-        if (! $profile) {
-            $profile = ChurchProfile::query()->create([
-                'name' => config('app.name', 'Profil Gereja'),
-                'logo' => null,
-            ]);
-        }
+            if (! $profile) {
+                $profile = ChurchProfile::query()->create([
+                    'name' => config('app.name', 'Profil Gereja'),
+                    'logo' => null,
+                ]);
+            }
+
+            return $profile;
+        });
 
         return $this->successResponse($profile, 'Profil gereja berhasil diambil');
     }
@@ -34,6 +39,8 @@ class ChurchProfileController extends Controller
         } else {
             $profile = ChurchProfile::query()->create($request->validated());
         }
+
+        Cache::forget('church_profile');
 
         return $this->successResponse($profile, 'Profil gereja berhasil disimpan');
     }
