@@ -8,6 +8,18 @@ jobs:
   # --- STEP 1: TESTING & ANALYSIS ---
   tests:
     runs-on: ubuntu-latest
+    
+    # Menambahkan MariaDB sebagai service agar testing bisa jalan
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: gereja_api_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mariadb-admin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
     steps:
       - uses: actions/checkout@v3
 
@@ -16,7 +28,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: mbstring, dom, curl, libxml, mysql
+          extensions: mbstring, dom, curl, libxml, mysql, bcmath
           coverage: none
 
       - name: Install PHP Dependencies
@@ -29,9 +41,20 @@ jobs:
       - name: Run PHPUnit Tests
         run: |
           cd api
-          # Copy env testing jika ada, kalau tidak pakai .env.example
-          cp .env.production .env
+          # Gunakan .env.test sebagai dasar, lalu ubah isinya untuk testing
+          cp .env.test .env
+          
+          # Override config database ke MariaDB Service di runner
+          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/g' .env
+          sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/g' .env
+          sed -i 's/DB_PORT=.*/DB_PORT=3306/g' .env
+          sed -i 's/DB_DATABASE=.*/DB_DATABASE=gereja_api_test/g' .env
+          sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/g' .env
+          sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=/g' .env
+          
           php artisan key:generate
+          # Jalankan migration sebelum test
+          php artisan migrate --force
           php artisan test
 
       # B. Testing Flutter
@@ -44,14 +67,14 @@ jobs:
         run: flutter pub get
 
       - name: Flutter Analyze
-        run: flutter analyze # Cek static analysis (linting)
+        run: flutter analyze
 
       - name: Flutter Test
-        run: flutter test # Jalankan unit test flutter jika ada
+        run: flutter test
 
   # --- STEP 2: DEPLOY LARAVEL (Hanya jalan jika Test LULUS) ---
   deploy-laravel:
-    needs: tests # Wajib nunggu job 'tests' sukses
+    needs: tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -81,6 +104,7 @@ jobs:
             cd api
             sudo chown -R $USER:www-data .
 
+            # Pastikan .env tersedia
             if [ ! -f .env ]; then
               cp .env.production .env || touch .env
             fi
@@ -102,7 +126,7 @@ jobs:
 
   # --- STEP 3: DEPLOY FLUTTER (Hanya jalan jika Test LULUS) ---
   deploy-flutter:
-    needs: tests # Wajib nunggu job 'tests' sukses
+    needs: tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
