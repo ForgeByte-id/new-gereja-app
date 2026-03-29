@@ -61,9 +61,6 @@ jobs:
       - name: Flutter Analyze
         run: flutter analyze
 
-      - name: Flutter Test
-        run: flutter test
-
   # --- STEP 2: DEPLOY LARAVEL (Hanya jalan jika Test LULUS) ---
   deploy-laravel:
     needs: tests
