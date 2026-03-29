@@ -16,7 +16,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            echo "🚀 Starting Laravel API Deployment..."
+            echo "🚀 Starting Laravel API Deployment (Monorepo)..."
             cd /var/www/gereja-gpiyehuda
 
             # 1. Sync & Clean Code
@@ -24,7 +24,10 @@ jobs:
             git fetch origin master
             git reset --hard origin/master
 
-            # 2. Permissions Setup awal agar script bisa jalan
+            # --- POIN PENTING: MASUK KE FOLDER API ---
+            cd api 
+
+            # 2. Permissions Setup
             sudo chown -R $USER:www-data .
 
             # 3. Setup Environment
@@ -37,26 +40,13 @@ jobs:
             echo "📦 Installing Composer dependencies..."
             composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
 
-            # 5. Laravel Security & Optimization
-            echo "🔐 Running Artisan Commands..."
-            
-            # Generate key jika belum ada (Penting untuk enkripsi API)
+            # 5. Laravel Optimization
             php artisan key:generate --force --no-interaction
-            
-            # Database Migration
             php artisan migrate --force
-            
-            # Cache Configuration & Routes (API Optimization)
             php artisan config:cache
-            php artisan route:cache  # <--- Jalankan Route Cache
+            php artisan route:cache
             
-            # Catatan: view:cache dihapus karena ini murni API
-            
-            # Restart Queue/Worker jika ada
-            php artisan queue:restart || echo "No queue runner found"
-
-            # 6. Final Permissions (Folder storage & cache harus writable oleh www-data)
-            echo "📂 Setting final permissions..."
+            # 6. Final Permissions
             sudo chgrp -R www-data storage bootstrap/cache
             sudo chmod -R 775 storage bootstrap/cache
             
