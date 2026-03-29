@@ -32,7 +32,7 @@ jobs:
           # Copy env testing jika ada, kalau tidak pakai .env.example
           cp .env.example .env
           php artisan key:generate
-          php artisan test --parallel # Menjalankan test Laravel
+          php artisan test
 
       # B. Testing Flutter
       - name: Setup Flutter
