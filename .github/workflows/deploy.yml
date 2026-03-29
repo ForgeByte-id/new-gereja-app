@@ -1,0 +1,71 @@
+name: Deploy Laravel & Flutter Web
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  deploy-laravel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy API via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /var/www/gereja-gpiyehuda
+
+            # 1. Paksa reset agar tidak bentrok dengan perubahan lokal di server
+            git config --global --add safe.directory /var/www/gereja-gpiyehuda
+            git fetch origin master
+            git reset --hard origin/master  # <--- Paksa ganti file lokal dengan yang ada di repo
+
+            # 2. Perbaiki ownership
+            sudo chown -R $USER:www-data .
+
+            # 3. Setup .env (only copy if missing)
+            if [ ! -f .env ]; then
+              cp .env.production .env
+            fi
+
+            # 4. Install Composer (Gunakan --no-interaction)
+            composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
+
+            # 5. Optimasi Laravel
+            php artisan migrate --force
+            php artisan vendor:publish --tag=livewire:assets --force
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan event:cache
+            php artisan queue:restart
+
+            # 7. Final Permissions
+            sudo chgrp -R www-data storage bootstrap/cache
+            sudo chmod -R 775 storage bootstrap/cache
+
+  deploy-flutter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      
+      - name: Build Flutter Web
+        run: |
+          flutter pub get
+          flutter build web --release
+
+      - name: Deploy to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "build/web/*"
+          target: "/var/www/new-gpi-yehuda/public_html"
+          strip_components: 2
