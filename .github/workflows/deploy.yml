@@ -16,38 +16,54 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            echo "🚀 Starting Laravel API Deployment..."
             cd /var/www/gereja-gpiyehuda
 
-            # 1. Paksa reset agar tidak bentrok dengan perubahan lokal di server
+            # 1. Sync & Clean Code
             git config --global --add safe.directory /var/www/gereja-gpiyehuda
             git fetch origin master
-            git reset --hard origin/master  # <--- Paksa ganti file lokal dengan yang ada di repo
+            git reset --hard origin/master
 
-            # 2. Perbaiki ownership
+            # 2. Permissions Setup awal agar script bisa jalan
             sudo chown -R $USER:www-data .
 
-            # 3. Setup .env (only copy if missing)
+            # 3. Setup Environment
             if [ ! -f .env ]; then
+              echo "📝 Creating .env from .env.production"
               cp .env.production .env
             fi
 
-            # 4. Install Composer (Gunakan --no-interaction)
+            # 4. Install Dependencies
+            echo "📦 Installing Composer dependencies..."
             composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
 
-            # 5. Optimasi Laravel
+            # 5. Laravel Security & Optimization
+            echo "🔐 Running Artisan Commands..."
+            
+            # Generate key jika belum ada (Penting untuk enkripsi API)
+            php artisan key:generate --force --no-interaction
+            
+            # Database Migration
             php artisan migrate --force
-            php artisan vendor:publish --tag=livewire:assets --force
+            
+            # Cache Configuration & Routes (API Optimization)
             php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
-            php artisan event:cache
-            php artisan queue:restart
+            php artisan route:cache  # <--- Jalankan Route Cache
+            
+            # Catatan: view:cache dihapus karena ini murni API
+            
+            # Restart Queue/Worker jika ada
+            php artisan queue:restart || echo "No queue runner found"
 
-            # 7. Final Permissions
+            # 6. Final Permissions (Folder storage & cache harus writable oleh www-data)
+            echo "📂 Setting final permissions..."
             sudo chgrp -R www-data storage bootstrap/cache
             sudo chmod -R 775 storage bootstrap/cache
+            
+            echo "✅ Laravel API Deployment Finished!"
 
   deploy-flutter:
+    needs: deploy-laravel # Menunggu API beres dulu
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -57,6 +73,7 @@ jobs:
       
       - name: Build Flutter Web
         run: |
+          echo "🔨 Building Flutter Web Release..."
           flutter pub get
           flutter build web --release
 
@@ -70,3 +87,14 @@ jobs:
           target: "/var/www/new-gpi-yehuda/public_html"
           strip_components: 2
           rm: true 
+          
+      - name: Post-Deploy Clean Up
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            echo "🧹 Cleaning up Flutter web permissions..."
+            sudo chown -R www-data:www-data /var/www/new-gpi-yehuda/public_html
+            echo "🚀 All systems are live!"
