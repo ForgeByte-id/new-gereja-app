@@ -7,7 +7,7 @@ use App\Console\Commands\SendEventReminderCommand;
 use App\Console\Commands\SendKkReminderCommand;
 use App\Console\Commands\SendServiceFollowUpCommand;
 use App\Console\Commands\SendAdminDigestCommand;
-use App\Console\Commands\SendTestEmailCommand;
+// use App\Console\Commands\SendTestEmailCommand;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 

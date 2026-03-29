@@ -30,7 +30,7 @@ jobs:
         run: |
           cd api
           # Copy env testing jika ada, kalau tidak pakai .env.example
-          cp .env.example .env
+          cp .env.production .env
           php artisan key:generate
           php artisan test
 
