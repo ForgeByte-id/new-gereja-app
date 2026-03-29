@@ -82,35 +82,33 @@ jobs:
             echo "🚀 Starting Laravel API Deployment..."
             APP_ROOT="/var/www/gereja-gpiyehuda"
             
+            # Pastikan permission folder benar sebelum git command
+            sudo chown -R $USER:www-data $APP_ROOT
+            
             cd $APP_ROOT
 
-            # Daftarkan directory agar git tidak protes soal ownership
+            # Daftarkan directory agar git tidak protes
             git config --global --add safe.directory $APP_ROOT
             
-            # Karena kamu sudah clone manual, kita cukup tarik perubahannya
             echo "Pulling latest changes..."
+            # Gunakan sudo git jika masih bermasalah, tapi harusnya chown di atas sudah cukup
             git fetch origin master
             git reset --hard origin/master
 
-            # Masuk ke folder Laravel (api)
             cd api
             
-            # Pastikan env ada (pakai yang sudah ada di VPS atau copy dari production)
-            if [ ! -f .env ]; then
-              cp .env.production .env || touch .env
-            fi
-
+            # Pastikan folder storage & cache bisa ditulis Laravel
+            sudo chown -R $USER:www-data .
+            
             # Install & Optimize
             composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
             
             php artisan migrate --force
             php artisan optimize:clear
-            php artisan config:cache
-            php artisan route:cache
             
-            # Beri izin akses ke web server
-            sudo chgrp -R www-data storage bootstrap/cache
+            # Permission Final untuk Web Server
             sudo chmod -R 775 storage bootstrap/cache
+            sudo chgrp -R www-data storage bootstrap/cache
             
             echo "✅ Laravel API Deployed Successfully!"
 
