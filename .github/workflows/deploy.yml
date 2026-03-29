@@ -69,3 +69,4 @@ jobs:
           source: "build/web/*"
           target: "/var/www/new-gpi-yehuda/public_html"
           strip_components: 2
+          rm: true 
