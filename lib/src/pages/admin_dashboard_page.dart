@@ -48,6 +48,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   final _teleponGerejaController = TextEditingController();
   final _emailGerejaController = TextEditingController();
   final _logoGerejaController = TextEditingController();
+  final _instagramController = TextEditingController();
+  final _youtubeController = TextEditingController();
+  final _tiktokController = TextEditingController();
+  final _facebookController = TextEditingController();
 
   final _judulEventController = TextEditingController();
   final _deskripsiEventController = TextEditingController();
@@ -111,6 +115,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     _teleponGerejaController.dispose();
     _emailGerejaController.dispose();
     _logoGerejaController.dispose();
+    _instagramController.dispose();
+    _youtubeController.dispose();
+    _tiktokController.dispose();
+    _facebookController.dispose();
     _judulEventController.dispose();
     _deskripsiEventController.dispose();
     _alamatEventController.dispose();
@@ -185,6 +193,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ((_profilGereja['logo'] as Map<String, dynamic>?)?['url']
               as String?) ??
           '';
+
+      final metadata = _profilGereja['metadata'] as Map<String, dynamic>?;
+      if (metadata != null) {
+        _instagramController.text =
+            (metadata['instagram'] as String?) ?? '';
+        _youtubeController.text = (metadata['youtube'] as String?) ?? '';
+        _tiktokController.text = (metadata['tiktok'] as String?) ?? '';
+        _facebookController.text = (metadata['facebook'] as String?) ?? '';
+      }
 
       _muatTemplateDariKategori(
         _kategoriTemplateTerpilih,
@@ -390,6 +407,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         throw const ApiError(message: 'Token tidak tersedia');
       }
 
+      final metadata = <String, dynamic>{};
+      final instagram = _instagramController.text.trim();
+      final youtube = _youtubeController.text.trim();
+      final tiktok = _tiktokController.text.trim();
+      final facebook = _facebookController.text.trim();
+
+      if (instagram.isNotEmpty) metadata['instagram'] = instagram;
+      if (youtube.isNotEmpty) metadata['youtube'] = youtube;
+      if (tiktok.isNotEmpty) metadata['tiktok'] = tiktok;
+      if (facebook.isNotEmpty) metadata['facebook'] = facebook;
+
       final payload = {
         'name': _namaGerejaController.text.trim(),
         'address': _alamatGerejaController.text.trim(),
@@ -400,6 +428,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           'disk': 'public',
           'path': _logoGerejaController.text.trim(),
         },
+        if (metadata.isNotEmpty) 'metadata': metadata,
       };
 
       _profilGereja = await _api.upsertChurchProfile(token, payload);
@@ -786,6 +815,66 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     }
   }
 
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Konfirmasi Logout'),
+        content: const Text('Apakah Anda yakin ingin keluar?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Keluar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      debugPrint('🔴 Logout: Confirmed, starting logout process');
+      
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      try {
+        debugPrint('🔴 Logout: Calling session.signOut()');
+        await widget.session.signOut();
+        debugPrint('🟢 Logout: session.signOut() completed successfully');
+        
+        if (mounted) {
+          // Close the loading dialog
+          Navigator.of(context).pop();
+          debugPrint('🟢 Logout: Loading dialog closed');
+        }
+      } catch (e, stackTrace) {
+        debugPrint('🔴 Logout ERROR: $e');
+        debugPrint('🔴 Logout STACK TRACE: $stackTrace');
+        
+        if (mounted) {
+          // Close the loading dialog
+          Navigator.of(context).pop();
+          // Show error message with details
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal logout: $e'),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final desktop = MediaQuery.sizeOf(context).width >= 1100;
@@ -814,7 +903,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
           IconButton(
             tooltip: 'Keluar',
-            onPressed: widget.session.signOut,
+            onPressed: _confirmLogout,
             icon: const Icon(Icons.logout),
           ),
         ],
@@ -2536,6 +2625,47 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               controller: _logoGerejaController,
               decoration: const InputDecoration(
                 labelText: 'URL Logo (opsional)',
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Media Sosial',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _instagramController,
+              decoration: const InputDecoration(
+                labelText: 'Instagram',
+                hintText: 'https://instagram.com/...',
+                prefixIcon: Icon(Icons.camera_alt),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _youtubeController,
+              decoration: const InputDecoration(
+                labelText: 'YouTube',
+                hintText: 'https://youtube.com/...',
+                prefixIcon: Icon(Icons.play_circle),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _tiktokController,
+              decoration: const InputDecoration(
+                labelText: 'TikTok',
+                hintText: 'https://tiktok.com/@...',
+                prefixIcon: Icon(Icons.music_note),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _facebookController,
+              decoration: const InputDecoration(
+                labelText: 'Facebook',
+                hintText: 'https://facebook.com/...',
+                prefixIcon: Icon(Icons.group),
               ),
             ),
             const SizedBox(height: 12),

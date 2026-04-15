@@ -1,5 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 /// Global instance untuk background message handler
@@ -14,11 +14,21 @@ void setupFirebaseMessaging() {
 /// Dipanggil dari session controller setelah user login
 /// untuk subscribe ke topic berdasarkan role
 void subscribeToFirebaseTopics(String userRole, int userId) {
+  // Firebase topic subscriptions not supported on web
+  if (kIsWeb) {
+    debugPrint('⚠️ Skipping Firebase topic subscription on web platform');
+    return;
+  }
   _firebaseMessageHandler.subscribeToTopics(userRole, userId);
 }
 
 /// Dipanggil dari session controller saat logout
 void unsubscribeFromTopics(String userRole, int userId) {
+  // Firebase topic un-subscriptions not supported on web
+  if (kIsWeb) {
+    debugPrint('⚠️ Skipping Firebase topic un-subscription on web platform');
+    return;
+  }
   _firebaseMessageHandler.unsubscribeFromTopics(userRole, userId);
 }
 

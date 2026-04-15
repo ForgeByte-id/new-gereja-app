@@ -164,12 +164,31 @@ class SessionController extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
-    // Unsubscribe from Firebase topics before logout
-    unsubscribeFromTopics(role.name, me['id'] as int? ?? 0);
-    // Unsubscribe from Firebase topics before logout
-    unsubscribeFromTopics(role.name, me['id'] as int? ?? 0);
-
+    debugPrint('🔵 Session.signOut: Starting logout process');
     final oldToken = token;
+    debugPrint('🔵 Session.signOut: oldToken = ${oldToken != null ? "[EXISTS]" : "[NULL]"}');
+
+    // Unsubscribe from Firebase topics before logout
+    if (me.isNotEmpty && me['id'] != null) {
+      debugPrint('🔵 Session.signOut: Unsubscribing from Firebase topics');
+      unsubscribeFromTopics(role.name, me['id'] as int);
+    }
+
+    // Call logout API first before clearing session
+    if (oldToken != null && oldToken.isNotEmpty) {
+      try {
+        debugPrint('🔵 Session.signOut: Calling apiClient.logout()');
+        await apiClient.logout(oldToken);
+        debugPrint('🟢 Session.signOut: apiClient.logout() succeeded');
+      } catch (e, stackTrace) {
+        debugPrint('🔴 Session.signOut ERROR in apiClient.logout: $e');
+        debugPrint('🔴 Session.signOut STACK TRACE: $stackTrace');
+        // Best effort logout - continue even if API fails
+      }
+    }
+
+    // Clear preferences and session data
+    debugPrint('🔵 Session.signOut: Clearing preferences');
     await _clearPrefs();
 
     token = null;
@@ -178,15 +197,9 @@ class SessionController extends ChangeNotifier {
     fcmSource = 'unknown';
     isAuthenticated = false;
     me = <String, dynamic>{};
+    debugPrint('🔵 Session.signOut: Calling notifyListeners()');
     notifyListeners();
-
-    if (oldToken != null && oldToken.isNotEmpty) {
-      try {
-        await apiClient.logout(oldToken);
-      } catch (_) {
-        // Best effort logout.
-      }
-    }
+    debugPrint('🟢 Session.signOut: Logout completed successfully');
   }
 
   void updateCurrentUser(Map<String, dynamic> userData) {

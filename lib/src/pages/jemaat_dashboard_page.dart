@@ -378,6 +378,54 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
     }
   }
 
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Konfirmasi Logout'),
+        content: const Text('Apakah Anda yakin ingin keluar?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Keluar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      try {
+        await widget.session.signOut();
+        if (mounted) {
+          // Close the loading dialog
+          Navigator.of(context).pop();
+        }
+      } catch (e) {
+        if (mounted) {
+          // Close the loading dialog
+          Navigator.of(context).pop();
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Gagal logout, coba lagi')),
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _downloadDokumentasi(Map<String, dynamic> event) async {
     try {
       final token = widget.session.token;
@@ -603,7 +651,7 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
           ),
           IconButton(
             tooltip: 'Keluar',
-            onPressed: widget.session.signOut,
+            onPressed: _confirmLogout,
             icon: const Icon(Icons.logout),
           ),
         ],

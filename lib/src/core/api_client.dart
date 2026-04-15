@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'models.dart';
@@ -183,11 +184,21 @@ class ApiClient {
   }
 
   Future<void> logout(String token) async {
-    final response = await http.post(
-      _uri('/auth/logout'),
-      headers: _headers(token: token),
-    );
-    await _decode(response);
+    debugPrint('🔵 API.logout: Making POST request to /auth/logout');
+    try {
+      final response = await http.post(
+        _uri('/auth/logout'),
+        headers: _headers(token: token),
+      );
+      debugPrint('🔵 API.logout: Response status = ${response.statusCode}');
+      debugPrint('🔵 API.logout: Response body = ${response.body}');
+      await _decode(response);
+      debugPrint('🟢 API.logout: Logout successful');
+    } catch (e, stackTrace) {
+      debugPrint('🔴 API.logout ERROR: $e');
+      debugPrint('🔴 API.logout STACK TRACE: $stackTrace');
+      rethrow;
+    }
   }
 
   Future<void> registerDevice({
