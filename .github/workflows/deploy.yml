@@ -138,6 +138,15 @@ jobs:
           flutter pub get
           flutter build web --release
 
+      - name: Create target directory
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            mkdir -p /var/www/new-gpi-yehuda/public_html_tmp
+
       - name: Deploy to VPS (SCP)
         uses: appleboy/scp-action@master
         with:
@@ -147,8 +156,8 @@ jobs:
           source: "build/web/*"
           target: "/var/www/new-gpi-yehuda/public_html_tmp"
           strip_components: 2
-          rm: true 
-          
+          rm: true
+
       - name: Finalize Flutter
         uses: appleboy/ssh-action@master
         with:
