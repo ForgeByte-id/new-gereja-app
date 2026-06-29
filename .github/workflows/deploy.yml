@@ -172,4 +172,5 @@ jobs:
             sudo cp -r /var/www/new-gpi-yehuda/public_html_tmp/. /var/www/new-gpi-yehuda/public_html/
             sudo rm -rf /var/www/new-gpi-yehuda/public_html_tmp
             sudo chown -R www-data:www-data /var/www/new-gpi-yehuda/public_html
-            echo "🚀 Flutter Web is live!"
+            echo "🚀 Flutter Web is live on https://gereja-gpiyehuda.my.id/"
+            
