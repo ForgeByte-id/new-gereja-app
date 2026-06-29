@@ -64,7 +64,7 @@ class _GerejaAppState extends State<GerejaApp> {
       return '$origin/api/v1';
     }
 
-    return 'https://gereja-gpiyehuda.my.id/api/v1';
+    return 'https://api.gereja-gpiyehuda.my.id/api/v1';
   }
 
   @override
