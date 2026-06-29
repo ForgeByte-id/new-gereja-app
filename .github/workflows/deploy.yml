@@ -155,7 +155,7 @@ jobs:
       - name: Build Flutter Web
         run: |
           flutter pub get
-          flutter build web --release
+          flutter build web --release --dart-define=API_BASE_URL=https://api.gereja-gpiyehuda.my.id/api/v1
 
       - name: Prepare Directory
         uses: appleboy/ssh-action@v1.2.2
