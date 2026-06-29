@@ -47,23 +47,22 @@ class _GerejaAppState extends State<GerejaApp> {
 
   String _resolveBaseUrl(String envBaseUrl) {
     final trimmed = envBaseUrl.trim();
-    if (trimmed.isNotEmpty) {
-      return trimmed;
-    }
+    if (trimmed.isNotEmpty) return trimmed;
 
     if (kIsWeb) {
       final host = Uri.base.host.toLowerCase();
       final isLocalHost =
           host == 'localhost' || host == '127.0.0.1' || host == '0.0.0.0';
+
       if (isLocalHost) {
         return 'http://localhost:8080/api/v1';
       }
 
-      final origin =
-          '${Uri.base.scheme}://${Uri.base.host}${Uri.base.hasPort ? ':${Uri.base.port}' : ''}';
-      return '$origin/api/v1';
+      // ✅ Production web → pakai subdomain API yang benar
+      return 'https://api.gereja-gpiyehuda.my.id/api/v1';
     }
 
+    // Mobile/desktop
     return 'https://api.gereja-gpiyehuda.my.id/api/v1';
   }
 
