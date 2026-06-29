@@ -2589,13 +2589,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _modulProfilGereja() {
-    return Card(
-      key: const ValueKey('profil'),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return SingleChildScrollView(
+      child: Card(
+        key: const ValueKey('profil'),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             const Text(
               'Profil Gereja',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -2675,6 +2676,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               label: const Text('Simpan Profil'),
             ),
           ],
+        ),
         ),
       ),
     );

@@ -1,19 +1,6 @@
 <!doctype html>
 <html>
   <head>
-    <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
     <base href="$FLUTTER_BASE_HREF" />
 
     <meta charset="UTF-8" />
@@ -29,6 +16,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="GPI Yehuda" />
     <link rel="apple-touch-icon" href="icons/Icon-192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="icons/Icon-512.png" />
+
+    <!-- iOS splash screen (fallback) -->
+    <link
+      rel="apple-touch-startup-image"
+      href="icons/Icon-512.png"
+      media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
+    />
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="favicon.png" />
@@ -36,26 +31,78 @@
     <title>GPI Yehuda</title>
     <link rel="manifest" href="manifest.json" />
 
-    <!-- PWA: register service worker & capture install prompt -->
     <script>
+      // --- Service Worker ---
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           navigator.serviceWorker.register("service_worker.js");
         });
       }
 
+      // --- PWA Install (Chrome Android only) ---
+      // iOS Safari does NOT fire beforeinstallprompt.
+      // On iOS, users must tap Share > "Add to Home Screen" manually.
       let deferredPrompt = null;
+
       window.addEventListener("beforeinstallprompt", (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        // Automatically show the prompt (Chrome on Android)
-        setTimeout(() => {
-          if (deferredPrompt) {
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
-          }
-        }, 3000);
+        // Dispatch custom event so Flutter's PwaInstallController can pick it up
+        window.dispatchEvent(
+          new CustomEvent("pwa-install-ready", { detail: e })
+        );
       });
+
+      window.addEventListener("appinstalled", () => {
+        deferredPrompt = null;
+        window.dispatchEvent(new CustomEvent("pwa-installed"));
+      });
+
+      // --- iOS Install Guide ---
+      function isIOS() {
+        return (
+          /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+          !window.MSStream
+        );
+      }
+
+      function isInStandaloneMode() {
+        return (
+          window.matchMedia("(display-mode: standalone)").matches ||
+          window.navigator.standalone === true
+        );
+      }
+
+      if (isIOS() && !isInStandaloneMode()) {
+        // Show a banner on iOS telling users how to install
+        var banner = document.createElement("div");
+        banner.id = "ios-install-banner";
+        banner.style.cssText =
+          "position:fixed;bottom:0;left:0;right:0;z-index:9999;" +
+          "background:#0D3D3A;color:#fff;padding:14px 20px;" +
+          "font-family:-apple-system,sans-serif;font-size:14px;" +
+          "display:flex;align-items:center;gap:10px;box-shadow:0 -2px 12px rgba(0,0,0,0.25);" +
+          "transform:translateY(100%);transition:transform 0.35s ease;";
+
+        banner.innerHTML =
+          "<span style='flex:1'>Install app: tap <strong>Share</strong> &rarr; <strong>Add to Home Screen</strong></span>" +
+          "<button id='ios-install-close' style='background:none;border:none;color:#fff;font-size:20px;cursor:pointer'>&times;</button>";
+
+        document.body.appendChild(banner);
+
+        requestAnimationFrame(function () {
+          banner.style.transform = "translateY(0)";
+        });
+
+        document
+          .getElementById("ios-install-close")
+          .addEventListener("click", function () {
+            banner.style.transform = "translateY(100%)";
+            setTimeout(function () {
+              banner.parentNode.removeChild(banner);
+            }, 350);
+          });
+      }
     </script>
   </head>
   <body>

@@ -12,6 +12,7 @@ class PwaInstallController extends ChangeNotifier {
 
   late final void Function(dynamic event) _beforeInstallListener;
   late final void Function(dynamic event) _appInstalledListener;
+  late final void Function(dynamic event) _installReadyListener;
 
   bool get canInstall => _deferredPrompt != null && !_isInstalled;
 
@@ -29,7 +30,6 @@ class PwaInstallController extends ChangeNotifier {
       try {
         promptEvent.preventDefault();
       } catch (_) {
-        // Some browsers may not expose preventDefault on this event shape.
       }
       notifyListeners();
     };
@@ -40,8 +40,16 @@ class PwaInstallController extends ChangeNotifier {
       notifyListeners();
     };
 
+    _installReadyListener = (event) {
+      if (_deferredPrompt == null) {
+        _deferredPrompt = (event as dynamic).detail;
+        notifyListeners();
+      }
+    };
+
     html.window.addEventListener('beforeinstallprompt', _beforeInstallListener);
     html.window.addEventListener('appinstalled', _appInstalledListener);
+    html.window.addEventListener('pwa-install-ready', _installReadyListener);
 
     notifyListeners();
   }
@@ -65,7 +73,6 @@ class PwaInstallController extends ChangeNotifier {
       try {
         await userChoice;
       } catch (_) {
-        // Browser/user can reject the prompt. Keep behavior silent.
       }
     }
 
@@ -97,6 +104,10 @@ class PwaInstallController extends ChangeNotifier {
         _beforeInstallListener,
       );
       html.window.removeEventListener('appinstalled', _appInstalledListener);
+      html.window.removeEventListener(
+        'pwa-install-ready',
+        _installReadyListener,
+      );
     }
 
     super.dispose();
