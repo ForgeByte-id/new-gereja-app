@@ -2,13 +2,16 @@ name: Deploy Laravel & Flutter Web
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
 
 jobs:
-  # --- STEP 1: TESTING & ANALYSIS ---
+  # ==========================
+  # TEST
+  # ==========================
   tests:
     runs-on: ubuntu-latest
-    
+
     services:
       mariadb:
         image: mariadb:10.11
@@ -17,129 +20,145 @@ jobs:
           MYSQL_DATABASE: gereja_api_test
         ports:
           - 3306:3306
-        options: --health-cmd="mariadb-admin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        options: >-
+          --health-cmd="mariadb-admin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: "8.4"
           extensions: mbstring, dom, curl, libxml, mysql, bcmath
           coverage: none
 
-      - name: Install PHP Dependencies
+      - name: Install Composer Dependencies
+        working-directory: api
         run: |
-          cd api
-          mkdir -p bootstrap/cache storage/framework/sessions storage/framework/views storage/framework/cache
-          chmod -R 775 bootstrap/cache storage
-          composer install --no-progress --no-interaction
+          mkdir -p bootstrap/cache
+          mkdir -p storage/framework/cache
+          mkdir -p storage/framework/views
+          mkdir -p storage/framework/sessions
 
-      - name: Run PHPUnit Tests
+          chmod -R 775 bootstrap storage
+
+          composer install \
+            --no-progress \
+            --no-interaction
+
+      - name: Run Laravel Test
+        working-directory: api
         run: |
-          cd api
-          # Gunakan .env.test sebagai dasar testing
-          if [ -f .env.test ]; then cp .env.test .env; else cp .env.example .env; fi
-          
-          # Pastikan koneksi ke service MariaDB runner benar
-          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/g' .env
-          sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/g' .env
-          sed -i 's/DB_PORT=.*/DB_PORT=3306/g' .env
-          sed -i 's/DB_DATABASE=.*/DB_DATABASE=gereja_api_test/g' .env
-          sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/g' .env
-          sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=/g' .env
+
+          if [ -f .env.test ]; then
+            cp .env.test .env
+          else
+            cp .env.example .env
+          fi
+
+          sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
+          sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+          sed -i 's/^DB_PORT=.*/DB_PORT=3306/' .env
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=gereja_api_test/' .env
+          sed -i 's/^DB_USERNAME=.*/DB_USERNAME=root/' .env
+          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=/' .env
 
           php artisan key:generate
           php artisan migrate --force
           php artisan test
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
-
-      - name: Install Flutter Dependencies
-        run: flutter pub get
+          channel: stable
 
       - name: Flutter Analyze
-        run: flutter analyze
+        run: |
+          flutter pub get
+          flutter analyze
 
-  # --- STEP 2: DEPLOY LARAVEL (Backend) ---
+  # ==========================
+  # DEPLOY LARAVEL
+  # ==========================
   deploy-laravel:
     needs: tests
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - name: Deploy API via SSH
-        uses: appleboy/ssh-action@master
+      - name: Deploy Laravel
+        uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
+
           script: |
+
             set -e
-            echo "🚀 Starting Laravel API Deployment..."
+
             APP_ROOT="/var/www/gereja-gpiyehuda"
-            
-            # 1. Masuk dan bersihkan kepemilikan folder
-            sudo chown -R $USER:www-data $APP_ROOT
+
+            echo "===== Laravel Deployment ====="
+
             cd $APP_ROOT
 
             git config --global --add safe.directory $APP_ROOT
-            
-            echo "Pulling latest changes..."
+
             git fetch origin master
             git reset --hard origin/master
 
-            # 2. Masuk ke folder API
             cd api
 
-            # 3. CRITICAL: Pastikan folder cache & storage ada SEBELUM composer install
-            mkdir -p bootstrap/cache storage/framework/sessions storage/framework/views storage/framework/cache
-            sudo chown -R $USER:www-data .
-            sudo chmod -R 775 bootstrap/cache storage
+            mkdir -p bootstrap/cache
+            mkdir -p storage/framework/cache
+            mkdir -p storage/framework/views
+            mkdir -p storage/framework/sessions
 
-            # 3.1 hapus .env lama untuk mencegah konflik, nanti akan digenerate ulang dari .env.production
-            rm -f .env
+            chmod -R 775 bootstrap storage
 
-            # 4. Copy .env jika belum ada
             if [ ! -f .env ]; then
-              cp .env.production .env || touch .env
+              cp .env.production .env
             fi
 
-            # 5. Composer install (sekarang harusnya aman karena folder sudah writable)
-            composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
-            
-            # 6. Database & Cache
+            composer install \
+              --no-dev \
+              --optimize-autoloader \
+              --no-interaction
+
             php artisan migrate --force
-            php artisan optimize:clear || true
+
+            php artisan optimize:clear
+
             php artisan config:cache
             php artisan route:cache
-            
-            # 7. Permission final untuk Nginx/PHP-FPM
-            sudo chgrp -R www-data storage bootstrap/cache
-            sudo chmod -R 775 storage bootstrap/cache
-            
-            echo "✅ Laravel API Deployed Successfully!"
+            php artisan view:cache
 
-  # --- STEP 3: DEPLOY FLUTTER (Frontend) ---
+            echo "Laravel Deploy Success"
+
+  # ==========================
+  # DEPLOY FLUTTER
+  # ==========================
   deploy-flutter:
     needs: tests
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
       - uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
-      
+          channel: stable
+
       - name: Build Flutter Web
         run: |
           flutter pub get
           flutter build web --release
 
-      - name: Create target directory
-        uses: appleboy/ssh-action@master
+      - name: Prepare Directory
+        uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
@@ -147,8 +166,8 @@ jobs:
           script: |
             mkdir -p /var/www/new-gpi-yehuda/public_html_tmp
 
-      - name: Deploy to VPS (SCP)
-        uses: appleboy/scp-action@master
+      - name: Upload Flutter
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
@@ -158,19 +177,24 @@ jobs:
           strip_components: 2
           rm: true
 
-      - name: Finalize Flutter
-        uses: appleboy/ssh-action@master
+      - name: Publish Flutter
+        uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
+
           script: |
+
             set -e
-            # Ganti folder public_html dengan build terbaru
-            sudo rm -rf /var/www/new-gpi-yehuda/public_html
-            sudo mkdir -p /var/www/new-gpi-yehuda/public_html
-            sudo cp -r /var/www/new-gpi-yehuda/public_html_tmp/. /var/www/new-gpi-yehuda/public_html/
-            sudo rm -rf /var/www/new-gpi-yehuda/public_html_tmp
-            sudo chown -R www-data:www-data /var/www/new-gpi-yehuda/public_html
-            echo "🚀 Flutter Web is live on https://gereja-gpiyehuda.my.id/"
-            
+
+            rm -rf /var/www/new-gpi-yehuda/public_html
+
+            mkdir -p /var/www/new-gpi-yehuda/public_html
+
+            cp -r /var/www/new-gpi-yehuda/public_html_tmp/. \
+                  /var/www/new-gpi-yehuda/public_html/
+
+            rm -rf /var/www/new-gpi-yehuda/public_html_tmp
+
+            echo "Flutter Deploy Success"
