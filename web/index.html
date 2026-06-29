@@ -35,6 +35,28 @@
 
     <title>GPI Yehuda</title>
     <link rel="manifest" href="manifest.json" />
+
+    <!-- PWA: register service worker & capture install prompt -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("service_worker.js");
+        });
+      }
+
+      let deferredPrompt = null;
+      window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        // Automatically show the prompt (Chrome on Android)
+        setTimeout(() => {
+          if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+          }
+        }, 3000);
+      });
+    </script>
   </head>
   <body>
     <script src="flutter_bootstrap.js" async></script>
