@@ -7,6 +7,7 @@ import '../core/app_colors.dart';
 import '../core/api_client.dart';
 import '../core/file_download.dart';
 import '../core/models.dart';
+import '../core/pwa_install_controller.dart';
 import '../core/session_controller.dart';
 import '../widgets/church_logo.dart';
 import 'jemaat_berita_page.dart';
@@ -29,6 +30,7 @@ class JemaatDashboardPage extends StatefulWidget {
 
 class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
   late final ApiClient _api;
+  late final PwaInstallController _pwaController;
 
   Map<String, dynamic> _gereja = <String, dynamic>{};
   List<Map<String, dynamic>> _events = <Map<String, dynamic>>[];
@@ -64,11 +66,19 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
   void initState() {
     super.initState();
     _api = widget.session.apiClient;
+    _pwaController = PwaInstallController()..initialize();
+    _pwaController.addListener(_onPwaChanged);
     _load();
+  }
+
+  void _onPwaChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _pwaController.removeListener(_onPwaChanged);
+    _pwaController.dispose();
     _lampiranController.dispose();
     for (final controller in _textControllers.values) {
       controller.dispose();
@@ -665,8 +675,36 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
-        onDestinationSelected: (index) => setState(() => _tab = index),
-        destinations: const [
+        onDestinationSelected: (index) {
+          if (index == 5) {
+            if (_pwaController.canInstall) {
+              _pwaController.promptInstall();
+            } else if (_pwaController.shouldShowIOSGuide) {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Install App'),
+                  content: const Text(
+                    'Untuk menginstall aplikasi:\n\n'
+                    '1. Tap ikon Share di Safari\n'
+                    '2. Pilih "Add to Home Screen"\n'
+                    '3. Tap "Add"',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Tutup'),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return;
+          }
+          setState(() => _tab = index);
+        },
+        destinations: [
+        ...const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
@@ -693,6 +731,14 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
             label: 'Profil',
           ),
         ],
+        if (_pwaController.canInstall ||
+            _pwaController.shouldShowIOSGuide)
+          const NavigationDestination(
+            icon: Icon(Icons.download_for_offline_outlined),
+            selectedIcon: Icon(Icons.download_for_offline),
+            label: 'Install',
+          ),
+      ],
       ),
     );
   }

@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../core/pwa_install_controller.dart';
@@ -12,69 +15,123 @@ class PwaInstallFab extends StatefulWidget {
 class _PwaInstallFabState extends State<PwaInstallFab> {
   final PwaInstallController _controller = PwaInstallController();
   bool _prompting = false;
+  bool _showIOSGuide = false;
 
   @override
   void initState() {
     super.initState();
     _controller.initialize();
+    _controller.addListener(_onControllerChanged);
+  }
+
+  void _onControllerChanged() {
+    if (!mounted) return;
+    if (_controller.shouldShowIOSGuide && !_showIOSGuide) {
+      setState(() => _showIOSGuide = true);
+    }
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     super.dispose();
   }
 
   Future<void> _handleInstallTap() async {
-    if (_prompting) {
-      return;
-    }
+    if (_prompting) return;
 
-    setState(() {
-      _prompting = true;
-    });
+    setState(() => _prompting = true);
 
     try {
       await _controller.promptInstall();
     } finally {
-      if (mounted) {
-        setState(() {
-          _prompting = false;
-        });
-      }
+      if (mounted) setState(() => _prompting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        if (!_controller.canInstall) {
-          return const SizedBox.shrink();
-        }
+    if (kIsWeb) {
+      return AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          if (_controller.shouldShowIOSGuide) {
+            return _iosGuideBanner(context);
+          }
 
-        return SafeArea(
-          child: Align(
-            alignment: Alignment.bottomRight,
+          if (!_controller.canInstall) {
+            return const SizedBox.shrink();
+          }
+
+          return _androidFab();
+        },
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _androidFab() {
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.bottomRight,
+        child: Padding(
+          padding: const EdgeInsets.only(right: 16, bottom: 16),
+          child: FloatingActionButton.extended(
+            heroTag: 'pwa-install-fab',
+            onPressed: _prompting ? null : _handleInstallTap,
+            icon: _prompting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.download_for_offline_outlined),
+            label: Text(_prompting ? 'Memproses...' : 'Install App'),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _iosGuideBanner(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(12),
+            color: colorScheme.primary,
             child: Padding(
-              padding: const EdgeInsets.only(right: 16, bottom: 16),
-              child: FloatingActionButton.extended(
-                heroTag: 'pwa-install-fab',
-                onPressed: _prompting ? null : _handleInstallTap,
-                icon: _prompting
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.download_for_offline_outlined),
-                label: Text(_prompting ? 'Memproses...' : 'Install App'),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  const Icon(Icons.ios_share, color: Colors.white, size: 22),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Install app: tap Share → Add to Home Screen',
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => setState(() => _showIOSGuide = false),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(Icons.close, color: Colors.white70, size: 20),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

@@ -58,51 +58,7 @@
         window.dispatchEvent(new CustomEvent("pwa-installed"));
       });
 
-      // --- iOS Install Guide ---
-      function isIOS() {
-        return (
-          /iPad|iPhone|iPod/.test(navigator.userAgent) &&
-          !window.MSStream
-        );
-      }
 
-      function isInStandaloneMode() {
-        return (
-          window.matchMedia("(display-mode: standalone)").matches ||
-          window.navigator.standalone === true
-        );
-      }
-
-      if (isIOS() && !isInStandaloneMode()) {
-        // Show a banner on iOS telling users how to install
-        var banner = document.createElement("div");
-        banner.id = "ios-install-banner";
-        banner.style.cssText =
-          "position:fixed;bottom:0;left:0;right:0;z-index:9999;" +
-          "background:#0D3D3A;color:#fff;padding:14px 20px;" +
-          "font-family:-apple-system,sans-serif;font-size:14px;" +
-          "display:flex;align-items:center;gap:10px;box-shadow:0 -2px 12px rgba(0,0,0,0.25);" +
-          "transform:translateY(100%);transition:transform 0.35s ease;";
-
-        banner.innerHTML =
-          "<span style='flex:1'>Install app: tap <strong>Share</strong> &rarr; <strong>Add to Home Screen</strong></span>" +
-          "<button id='ios-install-close' style='background:none;border:none;color:#fff;font-size:20px;cursor:pointer'>&times;</button>";
-
-        document.body.appendChild(banner);
-
-        requestAnimationFrame(function () {
-          banner.style.transform = "translateY(0)";
-        });
-
-        document
-          .getElementById("ios-install-close")
-          .addEventListener("click", function () {
-            banner.style.transform = "translateY(100%)";
-            setTimeout(function () {
-              banner.parentNode.removeChild(banner);
-            }, 350);
-          });
-      }
     </script>
   </head>
   <body>

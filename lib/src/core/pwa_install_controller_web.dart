@@ -9,12 +9,19 @@ class PwaInstallController extends ChangeNotifier {
   dynamic _deferredPrompt;
   bool _isInstalled = false;
   bool _isInitialized = false;
+  bool _isIOS = false;
 
   late final void Function(dynamic event) _beforeInstallListener;
   late final void Function(dynamic event) _appInstalledListener;
   late final void Function(dynamic event) _installReadyListener;
 
   bool get canInstall => _deferredPrompt != null && !_isInstalled;
+
+  bool get isIOS => _isIOS;
+
+  bool get isInstalled => _isInstalled;
+
+  bool get shouldShowIOSGuide => _isIOS && !_isInstalled;
 
   Future<void> initialize() async {
     if (_isInitialized) {
@@ -23,6 +30,7 @@ class PwaInstallController extends ChangeNotifier {
 
     _isInitialized = true;
     _isInstalled = _detectInstalledMode();
+    _isIOS = _detectIOS();
 
     _beforeInstallListener = (event) {
       _deferredPrompt = event;
@@ -94,6 +102,13 @@ class PwaInstallController extends ChangeNotifier {
     }
 
     return mediaStandalone || iosStandalone;
+  }
+
+  bool _detectIOS() {
+    final userAgent = html.window.navigator.userAgent.toLowerCase();
+    return userAgent.contains('iphone') ||
+        userAgent.contains('ipad') ||
+        userAgent.contains('ipod');
   }
 
   @override

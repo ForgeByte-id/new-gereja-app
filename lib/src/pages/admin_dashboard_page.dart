@@ -6,6 +6,7 @@ import '../core/api_client.dart';
 import '../core/file_download.dart';
 import '../core/models.dart';
 import '../core/session_controller.dart';
+import '../core/pwa_install_controller.dart';
 import '../widgets/church_logo.dart';
 import 'admin_jemaat_page.dart';
 import 'admin_kk_management_page.dart';
@@ -29,6 +30,7 @@ class AdminDashboardPage extends StatefulWidget {
 
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
   late final ApiClient _api;
+  late final PwaInstallController _pwaController;
 
   Map<String, dynamic> _profilGereja = <String, dynamic>{};
   List<Map<String, dynamic>> _events = <Map<String, dynamic>>[];
@@ -104,12 +106,20 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   void initState() {
     super.initState();
     _api = widget.session.apiClient;
+    _pwaController = PwaInstallController()..initialize();
+    _pwaController.addListener(_onPwaChanged);
     _fieldsBuilder.add(_FieldBuilderState.standar());
     _load();
   }
 
+  void _onPwaChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _pwaController.removeListener(_onPwaChanged);
+    _pwaController.dispose();
     _namaGerejaController.dispose();
     _alamatGerejaController.dispose();
     _teleponGerejaController.dispose();
@@ -991,6 +1001,46 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               ),
               onTap: () {
                 setState(() => _menu = i);
+                if (closeOnSelect) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          if (_pwaController.canInstall ||
+              _pwaController.shouldShowIOSGuide)
+            ListTile(
+              leading: const Icon(Icons.download_for_offline_outlined),
+              title: const Text('Install App'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 2,
+              ),
+              onTap: () {
+                if (_pwaController.canInstall) {
+                  _pwaController.promptInstall();
+                } else if (_pwaController.shouldShowIOSGuide) {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Install App'),
+                      content: const Text(
+                        'Untuk menginstall aplikasi:\n\n'
+                        '1. Tap ikon Share di Safari\n'
+                        '2. Pilih "Add to Home Screen"\n'
+                        '3. Tap "Add"',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Tutup'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
                 if (closeOnSelect) {
                   Navigator.of(context).pop();
                 }
