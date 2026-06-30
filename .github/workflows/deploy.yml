@@ -65,7 +65,7 @@ jobs:
           sed -i 's/^DB_PORT=.*/DB_PORT=3306/' .env
           sed -i 's/^DB_DATABASE=.*/DB_DATABASE=gereja_api_test/' .env
           sed -i 's/^DB_USERNAME=.*/DB_USERNAME=root/' .env
-          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=/' .env
+          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=/'
 
           php artisan key:generate
           php artisan migrate --force
@@ -121,11 +121,8 @@ jobs:
             
               echo "== Fix permissions safely =="
             
-              # FIX ownership (IMPORTANT)
-              # ganti www-data kalau server kamu pakai user lain (misal: forge, nginx)
               chown -R www-data:www-data storage bootstrap/cache || true
             
-              # safe permission instead of chmod -R 775 (yang bikin error)
               find storage -type d -exec chmod 775 {} \; || true
               find bootstrap/cache -type d -exec chmod 775 {} \; || true
             
@@ -173,29 +170,21 @@ jobs:
       - name: Build Flutter Web
         run: |
           flutter pub get
-          flutter build web --release --dart-define=API_BASE_URL=https://api.gereja-gpiyehuda.my.id/api/v1
+          flutter build web --release \
+            --web-renderer canvaskit \
+            --dart-define=API_BASE_URL=https://api.gereja-gpiyehuda.my.id/api/v1
 
-      - name: Prepare Directory
-        uses: appleboy/ssh-action@v1.2.2
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            mkdir -p /var/www/new-gpi-yehuda/public_html_tmp
-
-      - name: Upload Flutter
+      - name: Upload Flutter to Temp Directory
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           source: "build/web/*"
-          target: "/var/www/new-gpi-yehuda/public_html_tmp"
+          target: "/var/www/new-gpi-yehuda/public_html_new"
           strip_components: 2
-          rm: true
 
-      - name: Publish Flutter
+      - name: Swap to New Release
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -206,13 +195,19 @@ jobs:
 
             set -e
 
-            rm -rf /var/www/new-gpi-yehuda/public_html
+            RELEASE_DIR="/var/www/new-gpi-yehuda/public_html"
+            NEW_DIR="/var/www/new-gpi-yehuda/public_html_new"
+            PREV_DIR="/var/www/new-gpi-yehuda/public_html_prev"
 
-            mkdir -p /var/www/new-gpi-yehuda/public_html
+            # Remove previous backup if exists
+            rm -rf "$PREV_DIR"
 
-            cp -r /var/www/new-gpi-yehuda/public_html_tmp/. \
-                  /var/www/new-gpi-yehuda/public_html/
+            # If current release exists, move it to backup
+            if [ -d "$RELEASE_DIR" ]; then
+              mv "$RELEASE_DIR" "$PREV_DIR"
+            fi
 
-            rm -rf /var/www/new-gpi-yehuda/public_html_tmp
+            # Promote new build
+            mv "$NEW_DIR" "$RELEASE_DIR"
 
             echo "Flutter Deploy Success"
