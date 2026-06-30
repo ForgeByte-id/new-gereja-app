@@ -66,8 +66,9 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
   void initState() {
     super.initState();
     _api = widget.session.apiClient;
-    _pwaController = PwaInstallController()..initialize();
+    _pwaController = PwaInstallController();
     _pwaController.addListener(_onPwaChanged);
+    _pwaController.initialize();
     _load();
   }
 

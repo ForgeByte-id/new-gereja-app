@@ -105,10 +105,20 @@ class PwaInstallController extends ChangeNotifier {
   }
 
   bool _detectIOS() {
-    final userAgent = html.window.navigator.userAgent.toLowerCase();
-    return userAgent.contains('iphone') ||
+    final navigator = html.window.navigator;
+    final userAgent = navigator.userAgent.toLowerCase();
+    if (userAgent.contains('iphone') ||
         userAgent.contains('ipad') ||
-        userAgent.contains('ipod');
+        userAgent.contains('ipod')) {
+      return true;
+    }
+    // iPadOS 13+ reports desktop Safari user agent
+    if (userAgent.contains('macintosh') &&
+        navigator.maxTouchPoints != null &&
+        navigator.maxTouchPoints > 1) {
+      return true;
+    }
+    return false;
   }
 
   @override

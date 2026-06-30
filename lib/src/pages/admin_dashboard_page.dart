@@ -106,8 +106,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   void initState() {
     super.initState();
     _api = widget.session.apiClient;
-    _pwaController = PwaInstallController()..initialize();
+    _pwaController = PwaInstallController();
     _pwaController.addListener(_onPwaChanged);
+    _pwaController.initialize();
     _fieldsBuilder.add(_FieldBuilderState.standar());
     _load();
   }
