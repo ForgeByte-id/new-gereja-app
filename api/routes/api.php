@@ -6,6 +6,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\JemaatManagementController;
 use App\Http\Controllers\KKRegistrationController;
+use App\Http\Controllers\NewsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ChurchProfileController;
 use App\Http\Controllers\ServiceApplicationExportController;
@@ -34,6 +35,10 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/events/categories', [EventController::class, 'categories']);
         Route::get('/events/{event}/documentation/download', [EventController::class, 'downloadDocumentation']);
 
+        Route::get('/news', [NewsController::class, 'index']);
+        Route::get('/news/{news}', [NewsController::class, 'show']);
+        Route::get('/news/{news}/attachments/download', [NewsController::class, 'downloadAttachments']);
+
         Route::get('/church/profile', [ChurchProfileController::class, 'show']);
         Route::get('/users/family-members', [UserController::class, 'familyMembers']);
 
@@ -58,6 +63,10 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/kk-registrations/{kk}', [KKRegistrationController::class, 'show']);
             Route::put('/kk-registrations/{kk}', [KKRegistrationController::class, 'update'])->middleware('throttle:api-write');
             Route::delete('/kk-registrations/{kk}', [KKRegistrationController::class, 'destroy'])->middleware('throttle:api-write');
+            Route::post('/news', [NewsController::class, 'store'])->middleware('throttle:api-write');
+            Route::put('/news/{news}', [NewsController::class, 'update'])->middleware('throttle:api-write');
+            Route::delete('/news/{news}', [NewsController::class, 'destroy'])->middleware('throttle:api-write');
+            Route::post('/news/{news}/attachments', [NewsController::class, 'uploadAttachments'])->middleware('throttle:api-write');
             Route::put('/church/profile', [ChurchProfileController::class, 'upsert'])->middleware('throttle:api-write');
             Route::post('/events', [EventController::class, 'store'])->middleware('throttle:api-write');
             Route::post('/events/{event}/documentation', [EventController::class, 'uploadDocumentation'])->middleware('throttle:api-write');

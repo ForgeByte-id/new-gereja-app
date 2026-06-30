@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -40,6 +41,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   List<Map<String, dynamic>> _kategoriEvent = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _jemaat = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _keluarga = <Map<String, dynamic>>[];
+  List<Map<String, dynamic>> _beritaList = <Map<String, dynamic>>[];
+
+  final _judulBeritaController = TextEditingController();
+  final _deskripsiBeritaController = TextEditingController();
+  final _kontenBeritaController = TextEditingController();
+  final _coverBeritaController = TextEditingController();
+  DateTime? _tanggalTerbitBerita;
+  final List<_PickedFile> _beritaFiles = <_PickedFile>[];
+  bool _uploadingBerita = false;
 
   bool _loading = true;
   String? _error;
@@ -141,6 +151,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     _judulBroadcastController.dispose();
     _pesanBroadcastController.dispose();
     _roleBroadcastController.dispose();
+    _judulBeritaController.dispose();
+    _deskripsiBeritaController.dispose();
+    _kontenBeritaController.dispose();
+    _coverBeritaController.dispose();
     super.dispose();
   }
 
@@ -165,6 +179,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         _api.eventCategories(token),
         _api.users(token, role: 'jemaat', perPage: 100),
         _api.userFamilies(token, perPage: 100),
+        _api.news(token),
       ]);
 
       _profilGereja = results[0] as Map<String, dynamic>;
@@ -175,6 +190,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       _kategoriEvent = results[5] as List<Map<String, dynamic>>;
       _jemaat = results[6] as List<Map<String, dynamic>>;
       final keluargaPayload = results[7] as Map<String, dynamic>;
+      _beritaList = results[8] as List<Map<String, dynamic>>;
       _keluarga =
           (keluargaPayload['data'] as List?)
               ?.whereType<Map<String, dynamic>>()
@@ -957,6 +973,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       ('Pengajuan Layanan', Icons.assignment_outlined),
       ('Data Kartu Keluarga', Icons.groups_2_outlined),
       ('Manajemen Jemaat', Icons.people_outline),
+      ('Kelola Berita', Icons.newspaper_outlined),
       ('Broadcast', Icons.campaign_outlined),
       ('Edit Profil', Icons.person_outline),
       ('Profil Gereja', Icons.church_outlined),
@@ -1065,10 +1082,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       case 5:
         return _modulManajemenJemaat();
       case 6:
-        return _modulBroadcast();
+        return _modulBerita();
       case 7:
-        return _modulEditProfilAdmin();
+        return _modulBroadcast();
       case 8:
+        return _modulEditProfilAdmin();
+      case 9:
         return _modulProfilGereja();
       default:
         return _modulRingkasan();
@@ -2571,6 +2590,508 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return AdminKkManagementPage(session: widget.session);
   }
 
+  Widget _modulBerita() {
+    return ListView(
+      key: const ValueKey('berita'),
+      children: [
+        const Text(
+          'Kelola Berita',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _judulBeritaController,
+                  decoration: const InputDecoration(labelText: 'Judul Berita'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _deskripsiBeritaController,
+                  decoration: const InputDecoration(
+                    labelText: 'Deskripsi Singkat',
+                    hintText: 'Ringkasan yang tampil di list berita (opsional)',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _kontenBeritaController,
+                  minLines: 4,
+                  maxLines: 12,
+                  decoration: const InputDecoration(
+                    labelText: 'Konten Lengkap',
+                    hintText: 'Isi berita selengkapnya...',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _coverBeritaController,
+                  decoration: const InputDecoration(
+                    labelText: 'URL Cover Image (opsional)',
+                    hintText: 'https://...',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _pilihTanggalTerbit,
+                        icon: const Icon(Icons.calendar_month_outlined),
+                        label: Text(
+                          _tanggalTerbitBerita == null
+                              ? 'Pilih Tanggal Terbit'
+                              : _formatDateOnly(_tanggalTerbitBerita!),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _pilihFileBerita,
+                  icon: const Icon(Icons.attach_file),
+                  label: Text(
+                    _beritaFiles.isEmpty
+                        ? 'Pilih Lampiran Foto/File'
+                        : '${_beritaFiles.length} file dipilih',
+                  ),
+                ),
+                if (_beritaFiles.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: _beritaFiles.map((f) {
+                      return Chip(
+                        label: Text(
+                          f.name.length > 30
+                              ? '${f.name.substring(0, 27)}...'
+                              : f.name,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                        onDeleted: () => setState(() => _beritaFiles.remove(f)),
+                      );
+                    }).toList(),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.icon(
+                    onPressed: _uploadingBerita ? null : _simpanBerita,
+                    icon: _uploadingBerita
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.save),
+                    label: Text(_uploadingBerita ? 'Menyimpan...' : 'Simpan Berita'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Daftar Berita',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                if (_beritaList.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('Belum ada berita'),
+                  )
+                else
+                  ..._beritaList.map((berita) {
+                    final id = (berita['id'] as num?)?.toInt() ?? 0;
+                    final tanggal = berita['published_at'] as String? ??
+                        berita['created_at'] as String? ??
+                        '-';
+                    final tanggalLabel = tanggal.contains('T')
+                        ? tanggal.split('T').first
+                        : tanggal;
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        title: Text((berita['title'] as String?) ?? 'Tanpa Judul'),
+                        subtitle: Text(
+                          'Terbit: $tanggalLabel',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined),
+                              tooltip: 'Edit',
+                              onPressed: () => _editBerita(berita),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              tooltip: 'Hapus',
+                              onPressed: () => _hapusBerita(id),
+                            ),
+                          ],
+                        ),
+                        onTap: () => _lihatDetailBerita(berita),
+                      ),
+                    );
+                  }),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pilihTanggalTerbit() async {
+    final now = DateTime.now();
+    final initial = _tanggalTerbitBerita ?? now;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(now.year - 10),
+      lastDate: DateTime(now.year + 10),
+    );
+
+    if (picked == null || !mounted) return;
+
+    setState(() {
+      _tanggalTerbitBerita = picked;
+    });
+  }
+
+  Future<void> _pilihFileBerita() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf', 'zip'],
+      allowMultiple: true,
+    );
+
+    if (result == null || result.files.isEmpty) return;
+
+    setState(() {
+      for (final file in result.files) {
+        if (file.path != null) {
+          _beritaFiles.add(_PickedFile(name: file.name, path: file.path!));
+        }
+      }
+    });
+  }
+
+  Future<void> _simpanBerita() async {
+    if (_uploadingBerita) return;
+
+    setState(() => _uploadingBerita = true);
+
+    try {
+      final token = widget.session.token;
+      if (token == null || token.isEmpty) {
+        throw const ApiError(message: 'Token tidak tersedia');
+      }
+
+      final coverUrl = _coverBeritaController.text.trim();
+      final body = <String, dynamic>{
+        'title': _judulBeritaController.text.trim(),
+        'content': _kontenBeritaController.text.trim(),
+        'published_at': _tanggalTerbitBerita?.toIso8601String() ??
+            DateTime.now().toIso8601String(),
+      };
+
+      final deskripsi = _deskripsiBeritaController.text.trim();
+      if (deskripsi.isNotEmpty) body['description'] = deskripsi;
+
+      if (coverUrl.isNotEmpty) {
+        body['cover_image'] = {
+          'url': coverUrl,
+          'disk': 'public',
+          'path': coverUrl,
+        };
+      }
+
+      final created = await _api.createNews(token: token, body: body);
+      final newsId = (created['id'] as num?)?.toInt();
+      final newsTitle = created['title'] as String? ?? '';
+
+      if (newsId != null && _beritaFiles.isNotEmpty) {
+        final files = _beritaFiles
+            .map((f) => <String, dynamic>{'path': f.path, 'name': f.name})
+            .toList();
+        await _api.uploadNewsAttachments(token: token, newsId: newsId, files: files);
+      }
+
+      _judulBeritaController.clear();
+      _deskripsiBeritaController.clear();
+      _kontenBeritaController.clear();
+      _coverBeritaController.clear();
+      setState(() {
+        _tanggalTerbitBerita = null;
+        _beritaFiles.clear();
+      });
+      _snack('Berita "$newsTitle" berhasil dibuat');
+      await _load();
+    } on ApiError catch (error) {
+      _snack(error.message);
+    } finally {
+      if (mounted) setState(() => _uploadingBerita = false);
+    }
+  }
+
+  void _editBerita(Map<String, dynamic> berita) {
+    _judulBeritaController.text = (berita['title'] as String?) ?? '';
+    _deskripsiBeritaController.text = (berita['description'] as String?) ?? '';
+    _kontenBeritaController.text = (berita['content'] as String?) ?? '';
+    final coverImage = berita['cover_image'] as Map<String, dynamic>?;
+    _coverBeritaController.text = coverImage?['url'] as String? ?? '';
+
+    final publishedStr = berita['published_at'] as String?;
+    if (publishedStr != null) {
+      _tanggalTerbitBerita = DateTime.tryParse(publishedStr);
+    }
+
+    final id = (berita['id'] as num?)?.toInt() ?? 0;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Edit Berita'),
+            content: SizedBox(
+              width: 560,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: _judulBeritaController,
+                      decoration: const InputDecoration(labelText: 'Judul'),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _deskripsiBeritaController,
+                      decoration: const InputDecoration(
+                        labelText: 'Deskripsi Singkat',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _kontenBeritaController,
+                      minLines: 4,
+                      maxLines: 12,
+                      decoration: const InputDecoration(
+                        labelText: 'Konten Lengkap',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _coverBeritaController,
+                      decoration: const InputDecoration(
+                        labelText: 'URL Cover Image',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final now = DateTime.now();
+                        final initial = _tanggalTerbitBerita ?? now;
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: initial,
+                          firstDate: DateTime(now.year - 10),
+                          lastDate: DateTime(now.year + 10),
+                        );
+                        if (picked != null) {
+                          setDialogState(() {
+                            _tanggalTerbitBerita = picked;
+                          });
+                        }
+                      },
+                      icon: const Icon(Icons.calendar_month_outlined),
+                      label: Text(
+                        _tanggalTerbitBerita == null
+                            ? 'Pilih Tanggal Terbit'
+                            : _formatDateOnly(_tanggalTerbitBerita!),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  _resetFormBerita();
+                  Navigator.pop(ctx);
+                },
+                child: const Text('Batal'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  try {
+                    final token = widget.session.token;
+                    if (token == null || token.isEmpty) return;
+
+                    final coverUrl = _coverBeritaController.text.trim();
+                    final body = <String, dynamic>{
+                      'title': _judulBeritaController.text.trim(),
+                      'content': _kontenBeritaController.text.trim(),
+                      if (_tanggalTerbitBerita != null)
+                        'published_at': _tanggalTerbitBerita!.toIso8601String(),
+                    };
+
+                    final deskripsi = _deskripsiBeritaController.text.trim();
+                    body['description'] = deskripsi.isNotEmpty ? deskripsi : null;
+
+                    if (coverUrl.isNotEmpty) {
+                      body['cover_image'] = {
+                        'url': coverUrl,
+                        'disk': 'public',
+                        'path': coverUrl,
+                      };
+                    } else {
+                      body['cover_image'] = null;
+                    }
+
+                    await _api.updateNews(token: token, id: id, body: body);
+
+                    if (!mounted) return;
+                    Navigator.pop(ctx);
+                    _resetFormBerita();
+                    _snack('Berita berhasil diperbarui');
+                    await _load();
+                  } on ApiError catch (error) {
+                    _snack(error.message);
+                  }
+                },
+                child: const Text('Simpan'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _resetFormBerita() {
+    _judulBeritaController.clear();
+    _deskripsiBeritaController.clear();
+    _kontenBeritaController.clear();
+    _coverBeritaController.clear();
+    if (mounted) {
+      setState(() {
+        _tanggalTerbitBerita = null;
+      });
+    }
+  }
+
+  Future<void> _hapusBerita(int id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Berita'),
+        content: const Text('Apakah Anda yakin ingin menghapus berita ini?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final token = widget.session.token;
+      if (token == null || token.isEmpty) {
+        throw const ApiError(message: 'Token tidak tersedia');
+      }
+
+      await _api.deleteNews(token: token, id: id);
+      _snack('Berita berhasil dihapus');
+      await _load();
+    } on ApiError catch (error) {
+      _snack(error.message);
+    }
+  }
+
+  void _lihatDetailBerita(Map<String, dynamic> berita) {
+    final coverImage = berita['cover_image'] as Map<String, dynamic>?;
+    final coverUrl = coverImage?['url'] as String?;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          (berita['title'] as String?) ?? 'Berita',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        content: SizedBox(
+          width: 560,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (coverUrl != null && coverUrl.isNotEmpty) ...[
+                  Image.network(
+                    coverUrl,
+                    height: 200,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                Text(
+                  (berita['description'] as String?) ?? '',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(berita['content'] as String? ?? '-'),
+                const SizedBox(height: 12),
+                Text(
+                  'Terbit: ${berita['published_at'] as String? ?? '-'}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _modulBroadcast() {
     return Card(
       key: const ValueKey('broadcast'),
@@ -2820,6 +3341,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
+}
+
+class _PickedFile {
+  _PickedFile({required this.name, required this.path});
+
+  final String name;
+  final String path;
 }
 
 class _FieldBuilderState {

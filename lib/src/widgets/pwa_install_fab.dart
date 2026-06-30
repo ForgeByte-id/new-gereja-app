@@ -14,6 +14,7 @@ class _PwaInstallFabState extends State<PwaInstallFab> {
   final PwaInstallController _controller = PwaInstallController();
   bool _prompting = false;
   bool _showIOSGuide = false;
+  bool _dismissed = false;
 
   @override
   void initState() {
@@ -43,6 +44,7 @@ class _PwaInstallFabState extends State<PwaInstallFab> {
 
     try {
       await _controller.promptInstall();
+      if (mounted) setState(() => _dismissed = true);
     } finally {
       if (mounted) setState(() => _prompting = false);
     }
@@ -58,7 +60,7 @@ class _PwaInstallFabState extends State<PwaInstallFab> {
             return _iosGuideBanner(context);
           }
 
-          if (!_controller.canInstall) {
+          if (!_controller.canInstall || _dismissed) {
             return const SizedBox.shrink();
           }
 
@@ -75,18 +77,33 @@ class _PwaInstallFabState extends State<PwaInstallFab> {
       child: Align(
         alignment: Alignment.bottomRight,
         child: Padding(
-          padding: const EdgeInsets.only(right: 16, bottom: 16),
-          child: FloatingActionButton.extended(
-            heroTag: 'pwa-install-fab',
-            onPressed: _prompting ? null : _handleInstallTap,
-            icon: _prompting
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.download_for_offline_outlined),
-            label: Text(_prompting ? 'Memproses...' : 'Install App'),
+          padding: const EdgeInsets.only(
+            right: 16,
+            bottom: kBottomNavigationBarHeight + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              FloatingActionButton.small(
+                heroTag: 'pwa-install-fab-close',
+                onPressed: () => setState(() => _dismissed = true),
+                child: const Icon(Icons.close, size: 20),
+              ),
+              const SizedBox(height: 8),
+              FloatingActionButton.extended(
+                heroTag: 'pwa-install-fab',
+                onPressed: _prompting ? null : _handleInstallTap,
+                icon: _prompting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.download_for_offline_outlined),
+                label: Text(_prompting ? 'Memproses...' : 'Install App'),
+              ),
+            ],
           ),
         ),
       ),

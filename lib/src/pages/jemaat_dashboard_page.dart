@@ -1,3 +1,5 @@
+import 'dart:html' as html;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -821,6 +823,8 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
                 ),
               ),
               Text((_gereja['address'] as String?) ?? 'Bali, Indonesia'),
+              const SizedBox(height: 8),
+              _sosialMediaSection(),
             ],
           ),
         ),
@@ -925,6 +929,96 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
         ),
       ],
     );
+  }
+
+  Widget _sosialMediaSection() {
+    final metadata = _gereja['metadata'] as Map<String, dynamic>?;
+    if (metadata == null || metadata.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final platforms = <Map<String, String>>[];
+    for (final entry in [
+      {'key': 'instagram', 'icon': 'instagram', 'label': 'Instagram'},
+      {'key': 'tiktok', 'icon': 'tiktok', 'label': 'TikTok'},
+      {'key': 'youtube', 'icon': 'youtube', 'label': 'YouTube'},
+      {'key': 'facebook', 'icon': 'facebook', 'label': 'Facebook'},
+    ]) {
+      final value = metadata[entry['key']] as String?;
+      if (value != null && value.trim().isNotEmpty) {
+        platforms.add({
+          'key': entry['key']!,
+          'value': value.trim(),
+          'icon': entry['icon']!,
+          'label': entry['label']!,
+        });
+      }
+    }
+
+    if (platforms.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Sosial Media',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: platforms.map((p) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ActionChip(
+                  avatar: Icon(_sosialIcon(p['key']!), size: 18),
+                  label: Text(p['label']!, style: const TextStyle(fontSize: 12)),
+                  onPressed: () => _openSosialLink(p['key']!, p['value']!),
+                  visualDensity: VisualDensity.compact,
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _sosialIcon(String key) {
+    switch (key) {
+      case 'instagram':
+        return Icons.camera_alt_outlined;
+      case 'tiktok':
+        return Icons.music_note_outlined;
+      case 'youtube':
+        return Icons.play_circle_outline;
+      case 'facebook':
+        return Icons.facebook_outlined;
+      default:
+        return Icons.link;
+    }
+  }
+
+  void _openSosialLink(String platform, String value) {
+    String url = value;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      switch (platform) {
+        case 'instagram':
+          url = 'https://instagram.com/$value';
+          break;
+        case 'tiktok':
+          url = 'https://tiktok.com/@$value';
+          break;
+        case 'youtube':
+          url = 'https://youtube.com/$value';
+          break;
+        case 'facebook':
+          url = 'https://facebook.com/$value';
+          break;
+      }
+    }
+    html.window.open(url, '_blank');
   }
 
   Widget _ringkasanCard({
@@ -1034,11 +1128,6 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
                 leading: const Icon(Icons.event_available),
                 title: Text((event['title'] as String?) ?? '-'),
                 subtitle: Text(_formatWita24(startAt)),
-                trailing: TextButton.icon(
-                  onPressed: () => _downloadDokumentasi(event),
-                  icon: const Icon(Icons.download_outlined),
-                  label: const Text('Unduh'),
-                ),
               ),
             );
           }),

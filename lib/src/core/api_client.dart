@@ -745,6 +745,117 @@ class ApiClient {
     await _decode(response);
   }
 
+  Future<List<Map<String, dynamic>>> news(
+    String token, {
+    int perPage = 15,
+  }) async {
+    final response = await http.get(
+      _uri('/news', {'per_page': perPage}),
+      headers: _headers(token: token),
+    );
+    final payload = await _decode(response) as Map<String, dynamic>;
+    final data = payload['data'];
+    if (data is List) {
+      return data.whereType<Map<String, dynamic>>().toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  Future<Map<String, dynamic>> createNews({
+    required String token,
+    required Map<String, dynamic> body,
+  }) async {
+    final response = await http.post(
+      _uri('/news'),
+      headers: _headers(token: token),
+      body: jsonEncode(body),
+    );
+    final payload = await _decode(response) as Map<String, dynamic>;
+    return payload['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
+  }
+
+  Future<Map<String, dynamic>> updateNews({
+    required String token,
+    required int id,
+    required Map<String, dynamic> body,
+  }) async {
+    final response = await http.put(
+      _uri('/news/$id'),
+      headers: _headers(token: token),
+      body: jsonEncode(body),
+    );
+    final payload = await _decode(response) as Map<String, dynamic>;
+    return payload['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
+  }
+
+  Future<void> deleteNews({
+    required String token,
+    required int id,
+  }) async {
+    final response = await http.delete(
+      _uri('/news/$id'),
+      headers: _headers(token: token),
+    );
+    await _decode(response);
+  }
+
+  Future<List<Map<String, dynamic>>> uploadNewsAttachments({
+    required String token,
+    required int newsId,
+    required List<Map<String, dynamic>> files,
+  }) async {
+    final request = http.MultipartRequest(
+      'POST',
+      _uri('/news/$newsId/attachments'),
+    );
+    request.headers.addAll({
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    });
+
+    for (final file in files) {
+      if (file.containsKey('path')) {
+        request.files.add(
+          await http.MultipartFile.fromPath('files[]', file['path'] as String),
+        );
+      } else if (file.containsKey('bytes') && file.containsKey('name')) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'files[]',
+            file['bytes'] as Uint8List,
+            filename: file['name'] as String,
+          ),
+        );
+      }
+    }
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+    final payload = await _decode(response) as Map<String, dynamic>;
+    final data = payload['data'];
+    if (data is List) {
+      return data.whereType<Map<String, dynamic>>().toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  Future<Uint8List> downloadNewsAttachments({
+    required String token,
+    required int newsId,
+  }) async {
+    final response = await http.get(
+      _uri('/news/$newsId/attachments/download'),
+      headers: _headers(token: token),
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return response.bodyBytes;
+    }
+
+    await _decode(response);
+    return Uint8List(0);
+  }
+
   Future<Uint8List> exportServiceApplicationsCsv(
     String token, {
     String? status,

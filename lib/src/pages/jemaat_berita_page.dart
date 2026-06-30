@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
+import '../core/file_download.dart';
 import '../core/models.dart';
 import '../core/session_controller.dart';
 
@@ -47,10 +49,7 @@ class _JemaatBeritaPageState extends State<JemaatBeritaPage> {
         throw const ApiError(message: 'Token tidak tersedia');
       }
 
-      // Load documentations/blog articles
-      await _api.me(token); // Placeholder validasi token/session
-      // For now, return empty list with message
-      _berita = <Map<String, dynamic>>[];
+      _berita = await _api.news(token);
     } on ApiError catch (error) {
       _error =
           '${error.message}${error.traceId != null ? ' (trace: ${error.traceId})' : ''}';
@@ -229,6 +228,8 @@ class _JemaatBeritaPageState extends State<JemaatBeritaPage> {
 
   void _showBeritaDetail(Map<String, dynamic> berita) {
     final theme = Theme.of(context);
+    final attachmentCount = (berita['attachment_count'] as num?)?.toInt() ?? 0;
+    final beritaId = (berita['id'] as num?)?.toInt() ?? 0;
 
     showDialog(
       context: context,
@@ -251,6 +252,17 @@ class _JemaatBeritaPageState extends State<JemaatBeritaPage> {
               ),
               const SizedBox(height: 12),
               Text(berita['content'] as String? ?? '-'),
+              if (attachmentCount > 0) ...[
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _downloadLampiran(beritaId);
+                  },
+                  icon: const Icon(Icons.download_outlined),
+                  label: Text('Unduh Lampiran ($attachmentCount file)'),
+                ),
+              ],
             ],
           ),
         ),
@@ -262,5 +274,48 @@ class _JemaatBeritaPageState extends State<JemaatBeritaPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _downloadLampiran(int newsId) async {
+    try {
+      final token = widget.session.token;
+      if (token == null || token.isEmpty) {
+        throw const ApiError(message: 'Token tidak tersedia');
+      }
+
+      final bytes = await _api.downloadNewsAttachments(
+        token: token,
+        newsId: newsId,
+      );
+
+      if (!mounted) return;
+
+      final savedPath = await saveDownloadedBytes(
+        bytes: bytes,
+        fileName: 'berita-$newsId-lampiran.zip',
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            kIsWeb
+                ? 'Lampiran berhasil diunduh: $savedPath'
+                : 'Lampiran tersimpan: $savedPath',
+          ),
+        ),
+      );
+    } on ApiError catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal mengunduh lampiran berita')),
+      );
+    }
   }
 }
