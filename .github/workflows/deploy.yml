@@ -74,6 +74,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.27.x
 
       - name: Flutter Analyze
         run: |
@@ -167,12 +168,12 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.27.x
 
       - name: Build Flutter Web
         run: |
           flutter pub get
           flutter build web --release \
-            --web-renderer canvaskit \
             --dart-define=API_BASE_URL=https://api.gereja-gpiyehuda.my.id/api/v1
 
       - name: Upload Flutter to Temp Directory
