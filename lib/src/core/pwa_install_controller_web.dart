@@ -13,10 +13,10 @@ external bool get _jsInstalled;
 external bool get _jsIsIOS;
 
 @JS('window.pwaPollChanged')
-external JSFunction Function() get _pwaPollChanged;
+external JSFunction get _pwaPollChangedRaw;
 
 @JS('window.pwaPromptInstall')
-external JSFunction Function() get _pwaPromptInstall;
+external JSFunction get _pwaPromptInstallRaw;
 
 class PwaInstallController extends ChangeNotifier {
   bool _isInitialized = false;
@@ -39,14 +39,19 @@ class PwaInstallController extends ChangeNotifier {
 
   void _startPolling() {
     _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      if (_pwaPollChanged()) {
+      if (_pollChanged()) {
         notifyListeners();
       }
     });
   }
 
+  bool _pollChanged() {
+    final result = _pwaPollChangedRaw.callAsFunction();
+    return (result as JSBoolean?)?.toDart ?? false;
+  }
+
   Future<void> promptInstall() async {
-    _pwaPromptInstall();
+    _pwaPromptInstallRaw.callAsFunction();
   }
 
   @override

@@ -11,7 +11,10 @@ Future<String> saveDownloadedBytes({
       ? 'application/pdf'
       : 'application/zip';
 
-  final blob = web.Blob(<dynamic>[bytes.toJS].toJS, web.BlobPropertyBag(mimeType));
+  final blob = web.Blob(
+    (<dynamic>[bytes.toJS]).toJS,
+    web.BlobPropertyBag(type: mimeType),
+  );
   final url = web.URL.createObjectURL(blob);
 
   final anchor = web.document.createElement('a') as web.HTMLAnchorElement
