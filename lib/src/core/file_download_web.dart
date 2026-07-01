@@ -12,7 +12,7 @@ Future<String> saveDownloadedBytes({
       : 'application/zip';
 
   final blob = web.Blob(
-    (<dynamic>[bytes.toJS]).toJS,
+    [bytes.toJS].toJS,
     web.BlobPropertyBag(type: mimeType),
   );
   final url = web.URL.createObjectURL(blob);
