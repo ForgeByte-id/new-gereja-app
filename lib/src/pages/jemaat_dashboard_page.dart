@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 // ignore_for_file: deprecated_member_use
-import 'dart:html' as html;
+import 'package:web/web.dart' as web;
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -995,7 +996,7 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
           break;
       }
     }
-    html.window.open(url, '_blank');
+    web.window.open(url, '');
   }
 
   Widget _ringkasanCard({

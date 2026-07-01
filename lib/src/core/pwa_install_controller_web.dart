@@ -13,10 +13,10 @@ external bool get _jsInstalled;
 external bool get _jsIsIOS;
 
 @JS('window.pwaPollChanged')
-external bool Function() get _pwaPollChanged;
+external JSFunction Function() get _pwaPollChanged;
 
 @JS('window.pwaPromptInstall')
-external void Function() get _pwaPromptInstall;
+external JSFunction Function() get _pwaPromptInstall;
 
 class PwaInstallController extends ChangeNotifier {
   bool _isInitialized = false;

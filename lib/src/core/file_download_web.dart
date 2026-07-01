@@ -1,8 +1,7 @@
-// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
-
+import 'dart:js_interop';
 import 'dart:typed_data';
 
-import 'dart:html' as html;
+import 'package:web/web.dart' as web;
 
 Future<String> saveDownloadedBytes({
   required Uint8List bytes,
@@ -12,18 +11,18 @@ Future<String> saveDownloadedBytes({
       ? 'application/pdf'
       : 'application/zip';
 
-  final blob = html.Blob([bytes], mimeType);
-  final url = html.Url.createObjectUrlFromBlob(blob);
+  final blob = web.Blob(<dynamic>[bytes.toJS].toJS, web.BlobPropertyBag(mimeType));
+  final url = web.URL.createObjectURL(blob);
 
-  final anchor = html.AnchorElement()
+  final anchor = web.document.createElement('a') as web.HTMLAnchorElement
     ..href = url
     ..download = fileName
     ..style.display = 'none';
 
-  html.document.body?.append(anchor);
+  web.document.body!.appendChild(anchor);
   anchor.click();
   anchor.remove();
-  html.Url.revokeObjectUrl(url);
+  web.URL.revokeObjectURL(url);
 
   return fileName;
 }
