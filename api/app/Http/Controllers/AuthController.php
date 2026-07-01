@@ -184,18 +184,35 @@ class AuthController extends Controller
         $profilePhotoUrl = null;
 
         if ($photoPath) {
-            $diskUrl = Storage::disk('public')->url($photoPath);
-            if (str_starts_with($diskUrl, '/')) {
-                $baseUrl = config('app.url', '');
-                $profilePhotoUrl = rtrim($baseUrl, '/') . $diskUrl;
-            } else {
-                $profilePhotoUrl = $diskUrl;
-            }
+            $profilePhotoUrl = $this->resolvePhotoUrl($photoPath);
         }
 
         $payload['profile_photo_url'] = $profilePhotoUrl;
 
         return $payload;
+    }
+
+    private function resolvePhotoUrl(string $path): string
+    {
+        $disk = Storage::disk('public');
+        $diskUrl = $disk->url($path);
+
+        if (! str_starts_with($diskUrl, 'http://') && ! str_starts_with($diskUrl, 'https://')) {
+            $base = rtrim(config('app.url', ''), '/');
+            if ($base) {
+                return $base . '/' . ltrim($diskUrl, '/');
+            }
+
+            $request = request();
+            if ($request) {
+                $base = $request->getSchemeAndHttpHost();
+                return $base . '/' . ltrim($diskUrl, '/');
+            }
+
+            return $diskUrl;
+        }
+
+        return $diskUrl;
     }
 
     public static function normalizeName(string $value): string

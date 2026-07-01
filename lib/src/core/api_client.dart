@@ -357,6 +357,20 @@ class ApiClient {
     return payload['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
   }
 
+  Future<Map<String, dynamic>> updateEvent({
+    required String token,
+    required int id,
+    required Map<String, dynamic> body,
+  }) async {
+    final response = await http.put(
+      _uri('/events/$id'),
+      headers: _headers(token: token),
+      body: jsonEncode(body),
+    );
+    final payload = await _decode(response) as Map<String, dynamic>;
+    return payload['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
+  }
+
   Future<Uint8List> downloadEventDocumentation({
     required String token,
     required int eventId,

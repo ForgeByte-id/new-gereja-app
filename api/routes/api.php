@@ -22,6 +22,7 @@ Route::prefix('v1')->group(function (): void {
     Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:auth-register');
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:auth-login');
     Route::post('/auth/verify-kk', VerifyKkController::class)->middleware('throttle:auth-login');
+    Route::get('/church/profile', [ChurchProfileController::class, 'show']);
 
     Route::middleware(['auth:sanctum', 'throttle:api-default'])->group(function (): void {
         Route::get('/auth/me', [AuthController::class, 'me']);
@@ -42,7 +43,6 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/news/{news}', [NewsController::class, 'show']);
         Route::get('/news/{news}/attachments/download', [NewsController::class, 'downloadAttachments']);
 
-        Route::get('/church/profile', [ChurchProfileController::class, 'show']);
         Route::get('/users/family-members', [UserController::class, 'familyMembers']);
 
         Route::get('/services/categories', [ServiceController::class, 'categories']);
@@ -72,6 +72,7 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/news/{news}/attachments', [NewsController::class, 'uploadAttachments'])->middleware('throttle:api-write');
             Route::put('/church/profile', [ChurchProfileController::class, 'upsert'])->middleware('throttle:api-write');
             Route::post('/events', [EventController::class, 'store'])->middleware('throttle:api-write');
+            Route::put('/events/{event}', [EventController::class, 'update'])->middleware('throttle:api-write');
             Route::post('/events/{event}/documentation', [EventController::class, 'uploadDocumentation'])->middleware('throttle:api-write');
             Route::post('/events/categories', [EventCategoryController::class, 'store'])->middleware('throttle:api-write');
             Route::put('/events/categories/{category}', [EventCategoryController::class, 'update'])->middleware('throttle:api-write');

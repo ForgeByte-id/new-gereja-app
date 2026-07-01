@@ -99,6 +99,33 @@ class EventController extends Controller
         return $this->successResponse(new EventResource($event), 'Event berhasil dibuat', 201);
     }
 
+    public function update(StoreEventRequest $request, Event $event): JsonResponse
+    {
+        $startAt = $request->date('start_at') ?: $request->date('date');
+        $endAt = $request->date('end_at');
+        $location = $request->input('location');
+
+        if (is_string($location)) {
+            $location = [
+                'address' => $location,
+                'latitude' => null,
+                'longitude' => null,
+            ];
+        }
+
+        $event->update([
+            'title' => $request->string('title')->toString(),
+            'description' => $request->string('description')->toString() ?: null,
+            'date' => $startAt,
+            'start_at' => $startAt,
+            'end_at' => $endAt,
+            'location' => $location,
+            'category' => $request->string('category')->toString(),
+        ]);
+
+        return $this->successResponse(new EventResource($event->fresh()), 'Event berhasil diperbarui');
+    }
+
     public function uploadDocumentation(UploadDocumentationRequest $request, Event $event): JsonResponse
     {
         $files = $request->file('files', []);

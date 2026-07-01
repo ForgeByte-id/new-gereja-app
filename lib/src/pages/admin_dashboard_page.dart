@@ -76,6 +76,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   DateTime? _waktuMulaiEvent;
   DateTime? _waktuSelesaiEvent;
   String? _kategoriEventTerpilih;
+  int? _editingEventId;
 
   final _namaTemplateController = TextEditingController();
   String? _kategoriTemplateTerpilih;
@@ -505,19 +506,30 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         },
       };
 
-      await _api.createEvent(token: token, body: payload);
-      _judulEventController.clear();
-      _deskripsiEventController.clear();
-      _alamatEventController.clear();
-      setState(() {
-        _waktuMulaiEvent = null;
-        _waktuSelesaiEvent = null;
-      });
-      _snack('Event berhasil dibuat');
+      if (_editingEventId != null) {
+        await _api.updateEvent(token: token, id: _editingEventId!, body: payload);
+        _snack('Event berhasil diperbarui');
+      } else {
+        await _api.createEvent(token: token, body: payload);
+        _snack('Event berhasil dibuat');
+      }
+
+      _resetFormEvent();
       await _load();
     } on ApiError catch (error) {
       _snack(error.message);
     }
+  }
+
+  void _resetFormEvent() {
+    _judulEventController.clear();
+    _deskripsiEventController.clear();
+    _alamatEventController.clear();
+    setState(() {
+      _waktuMulaiEvent = null;
+      _waktuSelesaiEvent = null;
+      _editingEventId = null;
+    });
   }
 
   Future<void> _simpanTemplate() async {
@@ -1239,6 +1251,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   void _editEvent(Map<String, dynamic> event) {
+    _editingEventId = (event['id'] as num?)?.toInt();
     _judulEventController.text = (event['title'] as String?) ?? '';
     _deskripsiEventController.text = (event['description'] as String?) ?? '';
     _alamatEventController.text =
@@ -2984,12 +2997,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 else
                   ..._beritaList.map((berita) {
                     final id = (berita['id'] as num?)?.toInt() ?? 0;
-                    final tanggal = berita['published_at'] as String? ??
-                        berita['created_at'] as String? ??
-                        '-';
-                    final tanggalLabel = tanggal.contains('T')
-                        ? tanggal.split('T').first
-                        : tanggal;
+                    final tanggalLabel = formatTanggalString(
+                      berita['published_at'] as String? ??
+                          berita['created_at'] as String?,
+                      useLong: true,
+                    );
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(

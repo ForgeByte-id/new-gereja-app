@@ -2,50 +2,40 @@
 
 namespace Database\Seeders;
 
+use App\Models\Event;
+use App\Models\EventCategory;
+use App\Models\KKRegistration;
+use App\Models\ServiceCategory;
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        $adminPassword = env('ADMIN_PASSWORD', 'password123');
-        if (!Hash::needsRehash($adminPassword)) {
-            $adminPassword = Hash::make($adminPassword);
-        }
-
-        User::query()->updateOrCreate(
-            ['email' => env('ADMIN_EMAIL', 'admin@example.com')],
+        // Admin user
+        $admin = User::query()->updateOrCreate(
+            ['username' => env('ADMIN_USERNAME', 'admin_yehuda')],
             [
                 'name' => env('ADMIN_NAME', 'Admin GPI Yehuda'),
-                'username' => env('ADMIN_USERNAME', 'admin_yehuda'),
-                'password' => $adminPassword,
+                'email' => env('ADMIN_EMAIL', 'admin@gpi-yehuda.org'),
+                'password' => env('ADMIN_PASSWORD', 'password123'),
                 'role' => 'admin',
-                'nomor_kk' => env('ADMIN_NOMOR_KK', '5171010000000001'),
-                'jenis_kelamin' => env('ADMIN_JENIS_KELAMIN', 'L'),
-                'usia' => (int) env('ADMIN_USIA', 33),
-                'alamat' => env('ADMIN_ALAMAT', 'Denpasar, Bali'),
+                'nomor_kk' => '5171010000000001',
+                'jenis_kelamin' => 'L',
+                'usia' => 33,
+                'alamat' => 'Denpasar, Bali',
             ]
         );
 
-        $jemaatPassword = 'password123';
-        if (!Hash::needsRehash($jemaatPassword)) {
-            $jemaatPassword = Hash::make($jemaatPassword);
-        }
-
-        User::query()->updateOrCreate(
-            ['email' => 'jemaat@example.com'],
+        // Jemaat user (for testing)
+        $jemaat = User::query()->updateOrCreate(
+            ['username' => 'jemaat_yehuda'],
             [
                 'name' => 'Jemaat GPI Yehuda',
-                'username' => 'jemaat_yehuda',
-                'password' => $jemaatPassword,
+                'email' => 'jemaat@gpi-yehuda.org',
+                'password' => 'password123',
                 'role' => 'jemaat',
                 'nomor_kk' => '5171010000000002',
                 'jenis_kelamin' => 'P',
@@ -53,5 +43,61 @@ class DatabaseSeeder extends Seeder
                 'alamat' => 'Badung, Bali',
             ]
         );
+
+        // KK Registrations
+        KKRegistration::query()->updateOrCreate(
+            ['nomor_kk' => '5171010000000001'],
+            ['nama_kepala_keluarga' => 'Admin GPI Yehuda', 'registered_by' => $admin->id]
+        );
+
+        KKRegistration::query()->updateOrCreate(
+            ['nomor_kk' => '5171010000000002'],
+            ['nama_kepala_keluarga' => 'Jemaat GPI Yehuda', 'registered_by' => $admin->id]
+        );
+
+        // Event Categories
+        $eventCategories = [
+            ['code' => 'ibadah', 'name' => 'Ibadah', 'sort_order' => 1],
+            ['code' => 'persekutuan', 'name' => 'Persekutuan', 'sort_order' => 2],
+            ['code' => 'doa', 'name' => 'Doa', 'sort_order' => 3],
+            ['code' => 'pelayanan_sosial', 'name' => 'Pelayanan Sosial', 'sort_order' => 4],
+        ];
+        foreach ($eventCategories as $cat) {
+            EventCategory::query()->updateOrCreate(
+                ['code' => $cat['code']],
+                array_merge($cat, ['is_active' => true])
+            );
+        }
+
+        // Service Categories
+        $serviceCategories = [
+            ['code' => 'baptisan', 'name' => 'Baptisan', 'sort_order' => 1],
+            ['code' => 'pernikahan', 'name' => 'Pernikahan', 'sort_order' => 2],
+            ['code' => 'penyerahan_anak', 'name' => 'Penyerahan Anak', 'sort_order' => 3],
+            ['code' => 'permohonan_doa', 'name' => 'Permohonan Doa', 'sort_order' => 4],
+        ];
+        foreach ($serviceCategories as $cat) {
+            ServiceCategory::query()->updateOrCreate(
+                ['code' => $cat['code']],
+                array_merge($cat, ['is_active' => true])
+            );
+        }
+
+        // Sample event
+        if (!Event::query()->exists()) {
+            Event::query()->create([
+                'title' => 'Ibadah Raya Mingguan',
+                'description' => 'Ibadah raya mingguan GPI Yehuda',
+                'start_at' => now()->addDays(7)->setHour(9)->setMinute(0),
+                'end_at' => now()->addDays(7)->setHour(11)->setMinute(0),
+                'category' => 'ibadah',
+                'location' => [
+                    'address' => 'GPI Yehuda, Jl. Sunset Road No. 767, Denpasar, Bali',
+                    'latitude' => -8.670458,
+                    'longitude' => 115.212629,
+                ],
+                'created_by' => $admin->id,
+            ]);
+        }
     }
 }

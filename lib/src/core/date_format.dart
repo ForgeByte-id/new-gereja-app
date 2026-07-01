@@ -1,22 +1,39 @@
 import 'package:intl/intl.dart';
 
 /// Format tanggal untuk UI aplikasi GPI Yehuda.
-/// Menggunakan format dd/MM/yyyy sesuai permintaan klien.
-String formatTanggal(DateTime? date, {bool includeTime = false}) {
+/// Default: dd/MM/yyyy (sesuai permintaan klien).
+/// Use [useLong] untuk YYYY-MM-DD HH:mm:ss GMT+8.
+String formatTanggal(DateTime? date, {bool includeTime = false, bool useLong = false}) {
   if (date == null) return '-';
+  if (useLong) {
+    return formatTimestampLong(date);
+  }
   final datePart = DateFormat('dd/MM/yyyy').format(date);
   if (!includeTime) return datePart;
   final timePart = DateFormat('HH:mm').format(date);
   return '$datePart $timePart WITA';
 }
 
+/// Format YYYY-MM-DD HH:mm:ss GMT+8 (WITA).
+String formatTimestampLong(DateTime date) {
+  String two(int x) => x.toString().padLeft(2, '0');
+  final tanggal =
+      '${date.year.toString().padLeft(4, '0')}-${two(date.month)}-${two(date.day)}';
+  final jam =
+      '${two(date.hour)}:${two(date.minute)}:${two(date.second)}';
+  return '$tanggal $jam GMT+8';
+}
+
 /// Parse string ISO8601 ke DateTime lalu format ke dd/MM/yyyy.
 /// Tambahkan includeTime=true jika perlu menampilkan jam:menit WITA.
-String formatTanggalString(String? dateStr, {bool includeTime = false}) {
+/// Tambahkan useLong=true untuk format YYYY-MM-DD HH:mm:ss GMT+8.
+String formatTanggalString(String? dateStr, {bool includeTime = false, bool useLong = false}) {
   if (dateStr == null || dateStr.isEmpty) return '-';
   final parsed = DateTime.tryParse(dateStr);
   if (parsed == null) return dateStr;
-  return formatTanggal(parsed.toUtc().add(const Duration(hours: 8)), includeTime: includeTime);
+  final wita = parsed.toUtc().add(const Duration(hours: 8));
+  if (useLong) return formatTimestampLong(wita);
+  return formatTanggal(wita, includeTime: includeTime);
 }
 
 /// Format DateTime ke ISO8601 tanpa milisecond (untuk payload API).

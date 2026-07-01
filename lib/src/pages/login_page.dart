@@ -37,6 +37,33 @@ class _LoginPageState extends State<LoginPage> {
   String? _verifError;
   String? _error;
 
+  bool _showLoginPassword = false;
+  bool _showRegPassword = false;
+  bool _showRegConfirm = false;
+
+  String _churchAddress = '';
+  String _churchPhone = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadChurchProfile();
+  }
+
+  Future<void> _loadChurchProfile() async {
+    try {
+      final profile = await widget.session.apiClient.churchProfile('');
+      if (mounted) {
+        setState(() {
+          _churchAddress = (profile['address'] as String?) ?? '';
+          _churchPhone = (profile['phone'] as String?) ?? '';
+        });
+      }
+    } catch (_) {
+      // Show defaults — non-critical
+    }
+  }
+
   void _setJemaatCredentials() {
     _loginUsernameController.text = Environment.localJemaatEmail;
     _passwordController.text = Environment.localJemaatPassword;
@@ -275,10 +302,18 @@ class _LoginPageState extends State<LoginPage> {
         const SizedBox(height: 12),
         TextFormField(
           controller: _regPasswordController,
-          obscureText: true,
-          decoration: const InputDecoration(
+          obscureText: !_showRegPassword,
+          decoration: InputDecoration(
             labelText: 'Password',
-            prefixIcon: Icon(Icons.lock_outline),
+            prefixIcon: const Icon(Icons.lock_outline),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _showRegPassword ? Icons.visibility : Icons.visibility_off,
+              ),
+              onPressed: () {
+                setState(() => _showRegPassword = !_showRegPassword);
+              },
+            ),
           ),
           validator: (value) {
             if (value == null || value.isEmpty) return 'Password wajib diisi';
@@ -289,10 +324,18 @@ class _LoginPageState extends State<LoginPage> {
         const SizedBox(height: 12),
         TextFormField(
           controller: _regConfirmController,
-          obscureText: true,
-          decoration: const InputDecoration(
+          obscureText: !_showRegConfirm,
+          decoration: InputDecoration(
             labelText: 'Konfirmasi Password',
-            prefixIcon: Icon(Icons.lock_outline),
+            prefixIcon: const Icon(Icons.lock_outline),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _showRegConfirm ? Icons.visibility : Icons.visibility_off,
+              ),
+              onPressed: () {
+                setState(() => _showRegConfirm = !_showRegConfirm);
+              },
+            ),
           ),
           validator: (value) {
             if (value != _regPasswordController.text) return 'Password tidak cocok';
@@ -459,10 +502,22 @@ class _LoginPageState extends State<LoginPage> {
                                     const SizedBox(height: 14),
                                     TextFormField(
                                       controller: _passwordController,
-                                      obscureText: true,
-                                      decoration: const InputDecoration(
+                                      obscureText: !_showLoginPassword,
+                                      decoration: InputDecoration(
                                         labelText: 'Password',
-                                        prefixIcon: Icon(Icons.lock_outline),
+                                        prefixIcon: const Icon(Icons.lock_outline),
+                                        suffixIcon: IconButton(
+                                          icon: Icon(
+                                            _showLoginPassword
+                                                ? Icons.visibility
+                                                : Icons.visibility_off,
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              _showLoginPassword = !_showLoginPassword;
+                                            });
+                                          },
+                                        ),
                                       ),
                                       validator: (value) {
                                         if (value == null || value.isEmpty) {
@@ -554,23 +609,20 @@ class _LoginPageState extends State<LoginPage> {
                         Divider(color: theme.colorScheme.outlineVariant),
                       ],
                       const SizedBox(height: 10),
-                      Text(
-                        'Alamat: Jl. Sunset Road No. 767, Denpasar, Bali',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Instagram: @gpiyehuda • YouTube: GPI Yehuda • Facebook: GPI Yehuda Bali',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Email: admin@gpi-yehuda.org • Telp: (0361) 123456',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodySmall,
-                      ),
+                      if (_churchAddress.isNotEmpty)
+                        Text(
+                          _churchAddress,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      if (_churchPhone.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Telp: $_churchPhone',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
                     ],
                   ),
                 ),

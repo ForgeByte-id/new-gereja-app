@@ -890,10 +890,10 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
                   ...pengajuanTerbaru.map((item) {
                     final status = item['status']?.toString() ?? '-';
                     final category = item['category']?.toString() ?? '-';
-                    final tanggal = item['created_at']?.toString() ?? '-';
-                    final tanggalLabel = tanggal.contains('T')
-                        ? tanggal.split('T').first
-                        : tanggal;
+                    final tanggalLabel = formatTanggalString(
+                      item['created_at'] as String?,
+                      useLong: true,
+                    );
                     return ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
@@ -1197,10 +1197,10 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
           ..._pengajuanLayanan.map((item) {
             final category = item['category']?.toString() ?? '-';
             final status = item['status']?.toString() ?? '-';
-            final createdAt = item['created_at']?.toString() ?? '-';
-            final createdAtLabel = createdAt.contains('T')
-                ? createdAt.split('T').first
-                : createdAt;
+            final createdAtLabel = formatTanggalString(
+              item['created_at'] as String?,
+              useLong: true,
+            );
 
             return Card(
               child: ListTile(

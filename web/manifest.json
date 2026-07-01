@@ -4,7 +4,7 @@
     "start_url": "/",
     "scope": "/",
     "display": "standalone",
-    "background_color": "#F7FAF9",
+    "background_color": "#FFFCF8",
     "theme_color": "#0D3D3A",
     "description": "Sistem Informasi Jemaat dan Pelayanan GPI Yehuda.",
     "orientation": "portrait-primary",
