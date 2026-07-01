@@ -41,8 +41,8 @@ class _LoginPageState extends State<LoginPage> {
   bool _showRegPassword = false;
   bool _showRegConfirm = false;
 
-  String _churchAddress = '';
-  String _churchPhone = '';
+  String _churchAddress = 'Jl. Sunset Road No. 767, Denpasar, Bali';
+  String _churchPhone = '(0361) 123456';
 
   @override
   void initState() {
@@ -60,7 +60,13 @@ class _LoginPageState extends State<LoginPage> {
         });
       }
     } catch (_) {
-      // Show defaults — non-critical
+      // Fallback ke default jika gagal fetch
+      if (mounted) {
+        setState(() {
+          _churchAddress = 'Jl. Sunset Road No. 767, Denpasar, Bali';
+          _churchPhone = '(0361) 123456';
+        });
+      }
     }
   }
 

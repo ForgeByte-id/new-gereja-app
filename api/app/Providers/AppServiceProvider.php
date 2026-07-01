@@ -26,13 +26,13 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('admin', fn($user) => $user->role === 'admin');
 
         RateLimiter::for('auth-login', fn(Request $request) => [
-            Limit::perMinute(5)->by($request->ip() . '|' . (string) $request->input('username')),
-            Limit::perHour(30)->by($request->ip()),
+            Limit::perMinute(30)->by($request->ip() . '|' . (string) $request->input('username')),
+            Limit::perHour(200)->by($request->ip()),
         ]);
 
         RateLimiter::for('auth-register', fn(Request $request) => [
-            Limit::perMinute(3)->by($request->ip()),
-            Limit::perHour(10)->by($request->ip()),
+            Limit::perMinute(10)->by($request->ip()),
+            Limit::perHour(50)->by($request->ip()),
         ]);
 
         RateLimiter::for('broadcast', fn(Request $request) => [

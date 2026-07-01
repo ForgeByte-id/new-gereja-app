@@ -14,13 +14,13 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Admin user
+        // Admin user — password di-hash eksplisit, bypass cast 'hashed'
         $admin = User::query()->updateOrCreate(
             ['username' => env('ADMIN_USERNAME', 'admin_yehuda')],
             [
                 'name' => env('ADMIN_NAME', 'Admin GPI Yehuda'),
                 'email' => env('ADMIN_EMAIL', 'admin@gpi-yehuda.org'),
-                'password' => env('ADMIN_PASSWORD', 'password123'),
+                'password' => Hash::make('password123'),
                 'role' => 'admin',
                 'nomor_kk' => '5171010000000001',
                 'jenis_kelamin' => 'L',
@@ -29,13 +29,13 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Jemaat user (for testing)
+        // Jemaat user
         $jemaat = User::query()->updateOrCreate(
             ['username' => 'jemaat_yehuda'],
             [
                 'name' => 'Jemaat GPI Yehuda',
                 'email' => 'jemaat@gpi-yehuda.org',
-                'password' => 'password123',
+                'password' => Hash::make('password123'),
                 'role' => 'jemaat',
                 'nomor_kk' => '5171010000000002',
                 'jenis_kelamin' => 'P',
