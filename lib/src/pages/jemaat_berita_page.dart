@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
+import '../core/date_format.dart';
 import '../core/file_download.dart';
 import '../core/models.dart';
 import '../core/session_controller.dart';
@@ -80,32 +81,7 @@ class _JemaatBeritaPageState extends State<JemaatBeritaPage> {
   }
 
   String _formatTanggal(String? dateStr) {
-    if (dateStr == null) return '-';
-    try {
-      final date = DateTime.parse(
-        dateStr,
-      ).toUtc().add(const Duration(hours: 8));
-      const bulan = [
-        'Januari',
-        'Februari',
-        'Maret',
-        'April',
-        'Mei',
-        'Juni',
-        'Juli',
-        'Agustus',
-        'September',
-        'Oktober',
-        'November',
-        'Desember',
-      ];
-      final hari = date.day.toString().padLeft(2, '0');
-      final jam = date.hour.toString().padLeft(2, '0');
-      final menit = date.minute.toString().padLeft(2, '0');
-      return '$hari ${bulan[date.month - 1]} ${date.year} $jam:$menit WITA';
-    } catch (_) {
-      return '-';
-    }
+    return formatTanggalString(dateStr, includeTime: true);
   }
 
   @override

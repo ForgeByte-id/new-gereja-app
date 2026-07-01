@@ -105,10 +105,10 @@ class SessionController extends ChangeNotifier {
 
   Future<void> signUp({
     required String username,
-    required String email,
     required String password,
     required String nomorKk,
-    required String phoneNumber,
+    String? email,
+    String? phoneNumber,
     String? name,
     String? jenisKelamin,
     int? usia,
@@ -125,10 +125,10 @@ class SessionController extends ChangeNotifier {
       final deviceToken = fcmBootstrap.token;
       final session = await apiClient.register(
         username: username,
-        email: email,
+        email: email ?? '',
         password: password,
         nomorKk: nomorKk,
-        phoneNumber: phoneNumber,
+        phoneNumber: phoneNumber ?? '',
         fcmToken: deviceToken,
         name: name,
         jenisKelamin: jenisKelamin,

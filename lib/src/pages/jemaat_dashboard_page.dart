@@ -1,12 +1,13 @@
 import 'dart:html' as html;
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../core/app_colors.dart';
 import '../core/api_client.dart';
+import '../core/date_format.dart';
 import '../core/file_download.dart';
 import '../core/models.dart';
 import '../core/pwa_install_controller.dart';
@@ -801,8 +802,14 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: widget.darkMode
-                  ? const [Color(0xFF1E1E1E), Color(0xFF2C2C2C)]
-                  : const [Color(0xFFEAF7F2), Color(0xFFF4F9F7)],
+                  ? [
+                      theme.colorScheme.surfaceContainerLow,
+                      theme.colorScheme.surfaceContainer,
+                    ]
+                  : [
+                      theme.colorScheme.primaryContainer.withValues(alpha: 0.12),
+                      theme.colorScheme.surfaceContainerLow,
+                    ],
             ),
             borderRadius: BorderRadius.circular(22),
             border: Border.all(color: theme.colorScheme.outlineVariant),
@@ -1084,21 +1091,11 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
   String _labelTanggalEvent(Map<String, dynamic> event) {
     final raw =
         (event['start_at'] as String?) ?? (event['date'] as String?) ?? '-';
-    return _formatWita24(raw);
+    return formatTanggalString(raw, includeTime: true);
   }
 
   String _formatWita24(String raw) {
-    final parsed = DateTime.tryParse(raw);
-    if (parsed == null) {
-      return raw;
-    }
-
-    final wita = parsed.toUtc().add(const Duration(hours: 8));
-    final tanggal =
-        '${wita.year.toString().padLeft(4, '0')}-${wita.month.toString().padLeft(2, '0')}-${wita.day.toString().padLeft(2, '0')}';
-    final jam =
-        '${wita.hour.toString().padLeft(2, '0')}:${wita.minute.toString().padLeft(2, '0')}';
-    return '$tanggal $jam WITA';
+    return formatTanggalString(raw, includeTime: true);
   }
 
   Widget _tabEvent() {
@@ -1438,8 +1435,7 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
   }
 
   String _formatDateOnly(DateTime value) {
-    String two(int x) => x.toString().padLeft(2, '0');
-    return '${value.year}-${two(value.month)}-${two(value.day)}';
+    return formatDateLabel(value);
   }
 
   Color _statusBackgroundColor(String status, AppColors appColors) {

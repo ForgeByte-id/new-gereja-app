@@ -16,7 +16,9 @@ class GoogleSignInButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final assetPath = isDarkMode
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final assetPath = isDark
         ? 'assets/signin-assets/iOS/png@2x/dark/ios_dark_rd_ctn@2x.png'
         : 'assets/signin-assets/iOS/png@2x/light/ios_light_rd_ctn@2x.png';
 
@@ -24,7 +26,7 @@ class GoogleSignInButton extends StatelessWidget {
       height: 44,
       child: InkWell(
         onTap: isLoading ? null : onPressed,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         child: Stack(
           alignment: Alignment.center,
           children: [
@@ -36,18 +38,14 @@ class GoogleSignInButton extends StatelessWidget {
                   height: 44,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: isDarkMode
-                        ? const Color(0xFF131314)
-                        : const Color(0xFFF2F2F2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFF9AA0A6)),
+                    color: theme.colorScheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: theme.colorScheme.outlineVariant),
                   ),
                   child: Text(
                     text,
                     style: TextStyle(
-                      color: isDarkMode
-                          ? const Color(0xFFE3E3E3)
-                          : const Color(0xFF1F1F1F),
+                      color: theme.colorScheme.onSurface,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

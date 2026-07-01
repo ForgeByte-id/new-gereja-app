@@ -92,23 +92,35 @@ class ApiClient {
     int? usia,
     String? alamat,
   }) async {
+    final body = <String, dynamic>{
+      'username': username,
+      'password': password,
+      'password_confirmation': password,
+      'nomor_kk': nomorKk,
+      'phone_number': phoneNumber,
+      'fcm_token': fcmToken,
+    };
+
+    if (name != null && name.trim().isNotEmpty) {
+      body['name'] = name.trim();
+    }
+    if (email.isNotEmpty) {
+      body['email'] = email;
+    }
+    if (jenisKelamin != null && jenisKelamin.isNotEmpty) {
+      body['jenis_kelamin'] = jenisKelamin;
+    }
+    if (usia != null) {
+      body['usia'] = usia;
+    }
+    if (alamat != null && alamat.trim().isNotEmpty) {
+      body['alamat'] = alamat.trim();
+    }
+
     final response = await http.post(
       _uri('/auth/register'),
       headers: _headers(),
-      body: jsonEncode({
-        if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
-        'username': username,
-        'email': email,
-        'password': password,
-        'password_confirmation': password,
-        'nomor_kk': nomorKk,
-        'phone_number': phoneNumber,
-        'fcm_token': fcmToken,
-        if (jenisKelamin != null && jenisKelamin.isNotEmpty)
-          'jenis_kelamin': jenisKelamin,
-        'usia': ?usia,
-        if (alamat != null && alamat.trim().isNotEmpty) 'alamat': alamat.trim(),
-      }),
+      body: jsonEncode(body),
     );
 
     final payload = await _decode(response) as Map<String, dynamic>;
@@ -119,6 +131,22 @@ class ApiClient {
       role: parseRole(data['role'] as String?),
       user: (data['user'] as Map<String, dynamic>? ?? <String, dynamic>{}),
     );
+  }
+
+  Future<Map<String, dynamic>> verifyKk({
+    required String name,
+    required String nomorKk,
+  }) async {
+    final response = await http.post(
+      _uri('/auth/verify-kk'),
+      headers: _headers(),
+      body: jsonEncode({
+        'name': name,
+        'nomor_kk': nomorKk,
+      }),
+    );
+    final payload = await _decode(response) as Map<String, dynamic>;
+    return payload['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
   }
 
   Future<Map<String, dynamic>> me(String token) async {
@@ -276,6 +304,44 @@ class ApiClient {
       return data.whereType<Map<String, dynamic>>().toList();
     }
     return <Map<String, dynamic>>[];
+  }
+
+  Future<Map<String, dynamic>> createEventCategory({
+    required String token,
+    required Map<String, dynamic> body,
+  }) async {
+    final response = await http.post(
+      _uri('/events/categories'),
+      headers: _headers(token: token),
+      body: jsonEncode(body),
+    );
+    final payload = await _decode(response) as Map<String, dynamic>;
+    return payload['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
+  }
+
+  Future<Map<String, dynamic>> updateEventCategory({
+    required String token,
+    required int id,
+    required Map<String, dynamic> body,
+  }) async {
+    final response = await http.put(
+      _uri('/events/categories/$id'),
+      headers: _headers(token: token),
+      body: jsonEncode(body),
+    );
+    final payload = await _decode(response) as Map<String, dynamic>;
+    return payload['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
+  }
+
+  Future<void> deleteEventCategory({
+    required String token,
+    required int id,
+  }) async {
+    final response = await http.delete(
+      _uri('/events/categories/$id'),
+      headers: _headers(token: token),
+    );
+    await _decode(response);
   }
 
   Future<Map<String, dynamic>> createEvent({

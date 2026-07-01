@@ -16,7 +16,7 @@ class RegisterRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:160'],
             'username' => ['required', 'string', 'max:60', 'unique:users,username'],
-            'email' => ['required', 'email', 'max:191', 'unique:users,email'],
+            'email' => ['nullable', 'email', 'max:191', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'nomor_kk' => ['required', 'string', 'min:16', 'max:32', 'exists:kk_registrations,nomor_kk'],
             'jenis_kelamin' => ['nullable', 'in:L,P'],

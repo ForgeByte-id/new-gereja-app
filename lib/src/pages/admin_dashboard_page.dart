@@ -51,6 +51,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   final List<_PickedFile> _beritaFiles = <_PickedFile>[];
   bool _uploadingBerita = false;
 
+  final _kodeKategoriController = TextEditingController();
+  final _namaKategoriController = TextEditingController();
+  int _selectedEditKategoriId = 0;
+  bool _kategoriAktifEdit = true;
+
   bool _loading = true;
   String? _error;
   int _menu = 0;
@@ -155,6 +160,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     _deskripsiBeritaController.dispose();
     _kontenBeritaController.dispose();
     _coverBeritaController.dispose();
+    _kodeKategoriController.dispose();
+    _namaKategoriController.dispose();
     super.dispose();
   }
 
@@ -969,6 +976,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     final items = [
       ('Ringkasan', Icons.space_dashboard_outlined),
       ('Kelola Event', Icons.event_note_outlined),
+      ('Kategori Event', Icons.category_outlined),
       ('Form Builder Layanan', Icons.dashboard_customize_outlined),
       ('Pengajuan Layanan', Icons.assignment_outlined),
       ('Data Kartu Keluarga', Icons.groups_2_outlined),
@@ -1074,20 +1082,22 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       case 1:
         return _modulEvent();
       case 2:
-        return _modulBuilderTemplate();
+        return _modulKategoriEvent();
       case 3:
-        return _modulPengajuan();
+        return _modulBuilderTemplate();
       case 4:
-        return _modulKartuKeluarga();
+        return _modulPengajuan();
       case 5:
-        return _modulManajemenJemaat();
+        return _modulKartuKeluarga();
       case 6:
-        return _modulBerita();
+        return _modulManajemenJemaat();
       case 7:
-        return _modulBroadcast();
+        return _modulBerita();
       case 8:
-        return _modulEditProfilAdmin();
+        return _modulBroadcast();
       case 9:
+        return _modulEditProfilAdmin();
+      case 10:
         return _modulProfilGereja();
       default:
         return _modulRingkasan();
@@ -1261,8 +1271,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: widget.darkMode
-                  ? const [Color(0xFF122726), Color(0xFF1D3A38)]
-                  : const [Color(0xFFD8EFE7), Color(0xFFEFF8F3)],
+                  ? [
+                      theme.colorScheme.surfaceContainerLow,
+                      theme.colorScheme.surfaceContainer,
+                    ]
+                  : [
+                      theme.colorScheme.primaryContainer.withValues(alpha: 0.12),
+                      theme.colorScheme.surfaceContainerLow,
+                    ],
             ),
             borderRadius: BorderRadius.circular(22),
           ),
@@ -2588,6 +2604,254 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   Widget _modulKartuKeluarga() {
     return AdminKkManagementPage(session: widget.session);
+  }
+
+  Future<void> _simpanKategoriEvent() async {
+    try {
+      final token = widget.session.token;
+      if (token == null || token.isEmpty) {
+        throw const ApiError(message: 'Token tidak tersedia');
+      }
+
+      final kode = _kodeKategoriController.text.trim();
+      final nama = _namaKategoriController.text.trim();
+
+      if (kode.isEmpty || nama.isEmpty) {
+        _snack('Kode dan nama kategori wajib diisi');
+        return;
+      }
+
+      if (_selectedEditKategoriId == 0) {
+        await _api.createEventCategory(token: token, body: {
+          'code': kode,
+          'name': nama,
+          'is_active': _kategoriAktifEdit,
+        });
+        _snack('Kategori $nama berhasil ditambah');
+      } else {
+        await _api.updateEventCategory(
+          token: token,
+          id: _selectedEditKategoriId,
+          body: {
+            'name': nama,
+            'is_active': _kategoriAktifEdit,
+          },
+        );
+        _snack('Kategori $nama berhasil diperbarui');
+      }
+
+      _kodeKategoriController.clear();
+      _namaKategoriController.clear();
+      setState(() {
+        _selectedEditKategoriId = 0;
+        _kategoriAktifEdit = true;
+      });
+
+      await _load();
+    } on ApiError catch (error) {
+      _snack(error.message);
+    }
+  }
+
+  Future<void> _hapusKategoriEvent() async {
+    if (_selectedEditKategoriId == 0) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Kategori'),
+        content: const Text('Apakah Anda yakin ingin menghapus kategori ini?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final token = widget.session.token;
+      if (token == null || token.isEmpty) {
+        throw const ApiError(message: 'Token tidak tersedia');
+      }
+
+      await _api.deleteEventCategory(
+        token: token,
+        id: _selectedEditKategoriId,
+      );
+
+      _kodeKategoriController.clear();
+      _namaKategoriController.clear();
+      _snack('Kategori berhasil dihapus');
+      setState(() {
+        _selectedEditKategoriId = 0;
+        _kategoriAktifEdit = true;
+      });
+
+      await _load();
+    } on ApiError catch (error) {
+      _snack(error.message);
+    }
+  }
+
+  Widget _modulKategoriEvent() {
+    return ListView(
+      key: const ValueKey('kategori-event'),
+      children: [
+        const Text(
+          'Kategori Event',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _kodeKategoriController,
+                  decoration: const InputDecoration(
+                    labelText: 'Kode',
+                    hintText: 'contoh: ibadah, persekutuan',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _namaKategoriController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama Kategori',
+                    hintText: 'contoh: Ibadah Raya',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<int>(
+                        initialValue: _selectedEditKategoriId,
+                        decoration: const InputDecoration(
+                          labelText: 'Edit Existing (opsional)',
+                        ),
+                        items: [
+                          const DropdownMenuItem<int>(
+                            value: 0,
+                            child: Text('+ Tambah Baru'),
+                          ),
+                          ..._kategoriEvent.map(
+                            (item) => DropdownMenuItem<int>(
+                              value: (item['id'] as num?)?.toInt() ?? 0,
+                              child: Text(item['name']?.toString() ?? item['code']?.toString() ?? '-'),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value == null || value == 0) {
+                            _kodeKategoriController.clear();
+                            _namaKategoriController.clear();
+                            _kategoriAktifEdit = true;
+                            setState(() => _selectedEditKategoriId = 0);
+                            return;
+                          }
+                          final selected = _kategoriEvent.firstWhere(
+                            (item) => (item['id'] as num?)?.toInt() == value,
+                          );
+                          _kodeKategoriController.text = selected['code']?.toString() ?? '';
+                          _namaKategoriController.text = selected['name']?.toString() ?? '';
+                          _kategoriAktifEdit = (selected['is_active'] as bool?) ?? true;
+                          setState(() => _selectedEditKategoriId = value);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                if (_selectedEditKategoriId != 0) ...[
+                  const SizedBox(height: 12),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: _kategoriAktifEdit,
+                    onChanged: (v) => setState(() => _kategoriAktifEdit = v ?? true),
+                    title: const Text('Aktif'),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.icon(
+                    onPressed: _simpanKategoriEvent,
+                    icon: const Icon(Icons.save),
+                    label: Text(
+                      _selectedEditKategoriId == 0
+                          ? 'Tambah Kategori'
+                          : 'Simpan Perubahan',
+                    ),
+                  ),
+                ),
+                if (_selectedEditKategoriId != 0) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: _hapusKategoriEvent,
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Hapus Kategori'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: theme.colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Daftar Kategori',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                if (_kategoriEvent.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('Belum ada kategori event'),
+                  )
+                else
+                  ..._kategoriEvent.map((item) {
+                    final aktif = (item['is_active'] as bool?) ?? true;
+                    return ListTile(
+                      title: Text(item['name']?.toString() ?? '-'),
+                      subtitle: Text(
+                        '${item['code']} • ${aktif ? 'Aktif' : 'Nonaktif'}',
+                      ),
+                      onTap: () {
+                        _kodeKategoriController.text = item['code']?.toString() ?? '';
+                        _namaKategoriController.text = item['name']?.toString() ?? '';
+                        _kategoriAktifEdit = aktif;
+                        setState(() {
+                          _selectedEditKategoriId = (item['id'] as num?)?.toInt() ?? 0;
+                        });
+                      },
+                    );
+                  }),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _modulBerita() {

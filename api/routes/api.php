@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\EventCategoryController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\JemaatManagementController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\ChurchProfileController;
 use App\Http\Controllers\ServiceApplicationExportController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\VerifyKkController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -19,6 +21,7 @@ Route::prefix('v1')->group(function (): void {
 
     Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:auth-register');
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:auth-login');
+    Route::post('/auth/verify-kk', VerifyKkController::class)->middleware('throttle:auth-login');
 
     Route::middleware(['auth:sanctum', 'throttle:api-default'])->group(function (): void {
         Route::get('/auth/me', [AuthController::class, 'me']);
@@ -70,6 +73,9 @@ Route::prefix('v1')->group(function (): void {
             Route::put('/church/profile', [ChurchProfileController::class, 'upsert'])->middleware('throttle:api-write');
             Route::post('/events', [EventController::class, 'store'])->middleware('throttle:api-write');
             Route::post('/events/{event}/documentation', [EventController::class, 'uploadDocumentation'])->middleware('throttle:api-write');
+            Route::post('/events/categories', [EventCategoryController::class, 'store'])->middleware('throttle:api-write');
+            Route::put('/events/categories/{category}', [EventCategoryController::class, 'update'])->middleware('throttle:api-write');
+            Route::delete('/events/categories/{category}', [EventCategoryController::class, 'destroy'])->middleware('throttle:api-write');
             Route::post('/services/forms', [ServiceController::class, 'upsertTemplate'])->middleware('throttle:api-write');
             Route::put('/services/forms/{category}', [ServiceController::class, 'upsertTemplate'])->middleware('throttle:api-write');
             Route::delete('/services/forms/{category}', [ServiceController::class, 'destroyTemplate'])->middleware('throttle:api-write');

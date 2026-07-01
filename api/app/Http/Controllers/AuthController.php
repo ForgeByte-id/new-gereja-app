@@ -49,7 +49,7 @@ class AuthController extends Controller
         $user = User::query()->create([
             'name' => $name,
             'username' => $request->string('username')->toString(),
-            'email' => $request->string('email')->toString(),
+            'email' => $request->string('email')->toString() ?: $request->string('username')->toString() . '@placeholder.local',
             'password' => $request->string('password')->toString(),
             'nomor_kk' => $nomorKk,
             'jenis_kelamin' => $request->string('jenis_kelamin')->toString() ?: null,
@@ -187,7 +187,7 @@ class AuthController extends Controller
         return $payload;
     }
 
-    private static function normalizeName(string $value): string
+    public static function normalizeName(string $value): string
     {
         $collapsed = preg_replace('/\s+/u', ' ', trim($value)) ?? trim($value);
 
