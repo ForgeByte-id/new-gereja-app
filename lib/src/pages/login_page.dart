@@ -35,6 +35,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _verifyingKk = false;
   Map<String, dynamic>? _verifiedKk;
   String? _verifError;
+  String? _error;
 
   void _setJemaatCredentials() {
     _loginUsernameController.text = Environment.localJemaatEmail;
@@ -154,7 +155,6 @@ class _LoginPageState extends State<LoginPage> {
         _error = 'Terjadi kesalahan. Silakan coba lagi.';
       });
     }
-  }
   }
 
   Widget _buildVerifyStep() {

@@ -1,5 +1,6 @@
+// ignore_for_file: avoid_web_libraries_in_flutter
+// ignore_for_file: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -437,37 +438,6 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
           );
         }
       }
-    }
-  }
-
-  Future<void> _downloadDokumentasi(Map<String, dynamic> event) async {
-    try {
-      final token = widget.session.token;
-      if (token == null || token.isEmpty) {
-        throw const ApiError(message: 'Token tidak tersedia');
-      }
-      final eventId = (event['id'] as num?)?.toInt();
-      if (eventId == null) {
-        _snack('ID event tidak ditemukan');
-        return;
-      }
-      final bytes = await _api.downloadEventDocumentation(
-        token: token,
-        eventId: eventId,
-      );
-      final savedPath = await saveDownloadedBytes(
-        bytes: bytes,
-        fileName: 'event-$eventId-documentation.zip',
-      );
-      _snack(
-        kIsWeb
-            ? 'Dokumentasi berhasil diunduh: $savedPath'
-            : 'Dokumentasi tersimpan: $savedPath',
-      );
-    } on ApiError catch (error) {
-      _snack(error.message);
-    } catch (_) {
-      _snack('Gagal memproses unduhan dokumentasi event.');
     }
   }
 

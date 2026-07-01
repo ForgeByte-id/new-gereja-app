@@ -1261,6 +1261,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _modulRingkasan() {
+    final theme = Theme.of(context);
     return ListView(
       key: const ValueKey('ringkasan'),
       children: [
@@ -2702,6 +2703,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _modulKategoriEvent() {
+    final theme = Theme.of(context);
     return ListView(
       key: const ValueKey('kategori-event'),
       children: [
