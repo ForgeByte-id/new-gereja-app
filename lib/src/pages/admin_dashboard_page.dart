@@ -3238,6 +3238,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     await _api.updateNews(token: token, id: id, body: body);
 
                     if (!mounted) return;
+                    if (!ctx.mounted) return;
                     Navigator.pop(ctx);
                     _resetFormBerita();
                     _snack('Berita berhasil diperbarui');
@@ -3327,7 +3328,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     height: 200,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
                   ),
                   const SizedBox(height: 12),
                 ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/api_client.dart';
 import '../core/environment.dart';
 import '../core/models.dart';
 import '../core/session_controller.dart';
@@ -33,7 +34,6 @@ class _LoginPageState extends State<LoginPage> {
   int _authTab = 0;
   int _regStep = 1;
   bool _verifyingKk = false;
-  Map<String, dynamic>? _verifiedKk;
   String? _verifError;
   String? _error;
 
@@ -125,7 +125,7 @@ class _LoginPageState extends State<LoginPage> {
     } on ApiError catch (e) {
       setState(() {
         _verifyingKk = false;
-        _verifError = e.message ?? 'Verifikasi gagal. Silakan coba lagi.';
+        _verifError = e.message;
       });
     } catch (e) {
       setState(() {
@@ -148,7 +148,7 @@ class _LoginPageState extends State<LoginPage> {
       );
     } on ApiError catch (e) {
       setState(() {
-        _error = e.message ?? 'Registrasi gagal. Silakan coba lagi.';
+        _error = e.message;
       });
     } catch (e) {
       setState(() {

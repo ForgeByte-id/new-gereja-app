@@ -96,7 +96,6 @@ class _GerejaAppState extends State<GerejaApp> {
   Widget build(BuildContext context) {
     final goldAccent = const Color(0xFFC9A84C);
     final goldAccentLight = const Color(0xFFF5EBCB);
-    final goldAccentDark = const Color(0xFF8B732A);
 
     final lightScheme = ColorScheme.fromSeed(
       seedColor: const Color(0xFF0D3D3A),
