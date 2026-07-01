@@ -180,9 +180,20 @@ class AuthController extends Controller
     private function userPayload(User $user): array
     {
         $payload = $user->toArray();
-        $payload['profile_photo_url'] = $user->profile_photo_path
-            ? Storage::url($user->profile_photo_path)
-            : null;
+        $photoPath = $user->profile_photo_path;
+        $profilePhotoUrl = null;
+
+        if ($photoPath) {
+            $diskUrl = Storage::disk('public')->url($photoPath);
+            if (str_starts_with($diskUrl, '/')) {
+                $baseUrl = config('app.url', '');
+                $profilePhotoUrl = rtrim($baseUrl, '/') . $diskUrl;
+            } else {
+                $profilePhotoUrl = $diskUrl;
+            }
+        }
+
+        $payload['profile_photo_url'] = $profilePhotoUrl;
 
         return $payload;
     }
