@@ -509,6 +509,12 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
         return;
       }
 
+      final oldUrl = _fotoProfilUrl;
+      if (oldUrl != null) {
+        final provider = NetworkImage(oldUrl);
+        await provider.evict();
+      }
+
       setState(() {
         _fotoProfilUrl = payload['profile_photo_url'] as String?;
       });
@@ -580,6 +586,12 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
 
       if (!mounted) {
         return;
+      }
+
+      final oldUrl = _fotoProfilUrl;
+      if (oldUrl != null) {
+        final provider = NetworkImage(oldUrl);
+        await provider.evict();
       }
 
       setState(() {

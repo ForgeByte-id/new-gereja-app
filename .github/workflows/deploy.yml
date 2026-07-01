@@ -69,6 +69,7 @@ jobs:
 
           php artisan key:generate
           php artisan migrate --force
+          php artisan storage:link
           php artisan test
 
       - uses: subosito/flutter-action@v2
@@ -100,59 +101,59 @@ jobs:
           script: |
 
               set -e
-            
+
               APP_ROOT="/var/www/gereja-gpiyehuda"
-            
+
               echo "===== Laravel Deployment ====="
-            
+
               cd $APP_ROOT
-            
+
               git config --global --add safe.directory $APP_ROOT
-            
+
               git fetch origin master
               git reset --hard origin/master
-            
+
               cd api
-            
+
               echo "== Ensure directories =="
-            
+
               mkdir -p bootstrap/cache \
                        storage/framework/cache \
                        storage/framework/views \
                        storage/framework/sessions
-            
+
               echo "== Fix permissions safely =="
-            
+
               chown -R www-data:www-data storage bootstrap/cache || true
-            
+
               find storage -type d -exec chmod 775 {} \; || true
               find bootstrap/cache -type d -exec chmod 775 {} \; || true
-            
+
               find storage -type f -exec chmod 664 {} \; || true
-            
+
               echo "== Setup .env =="
-            
+
               if [ ! -f .env ]; then
                 cp .env.production .env
               fi
-            
+
               echo "== Install dependencies =="
-            
+
               composer install \
                 --no-dev \
                 --optimize-autoloader \
                 --no-interaction
-            
+
               echo "== Laravel optimize =="
-            
+
               php artisan migrate --force
-            
+
               php artisan optimize:clear
-            
+
               php artisan config:cache
               php artisan route:cache
               php artisan view:cache
-            
+
               echo "Laravel Deploy Success"
 
   # ==========================

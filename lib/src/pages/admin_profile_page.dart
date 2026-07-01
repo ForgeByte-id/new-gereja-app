@@ -96,16 +96,42 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
   Future<void> _pickFoto() async {
     try {
       final file = await _imagePicker.pickImage(source: ImageSource.gallery);
-      if (file != null) {
-        setState(() {
-          _selectedFotoFile = file;
-        });
+      if (file == null) return;
+
+      setState(() {
+        _selectedFotoFile = file;
+        _saving = true;
+      });
+
+      final token = widget.session.token;
+      if (token == null || token.isEmpty) return;
+
+      final payload = await _api.uploadProfilePhoto(
+        token: token,
+        filePath: file.path,
+      );
+
+      final newUrl = payload['profile_photo_url'] as String?;
+
+      if (newUrl != null && mounted) {
+        final oldUrl = _fotoProfilUrl;
+        _fotoProfilUrl = newUrl;
+        _selectedFotoFile = null;
+
+        if (oldUrl != null) {
+          final provider = NetworkImage(oldUrl);
+          await provider.evict();
+        }
+      }
+
+      if (mounted) {
+        setState(() => _saving = false);
+        _snack('Foto profil berhasil diperbarui');
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Gagal memilih foto')));
+        setState(() => _saving = false);
+        _snack('Gagal upload foto');
       }
     }
   }
@@ -179,6 +205,11 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
     }
   }
 
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -230,18 +261,26 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
                   CircleAvatar(
                     radius: 50,
                     backgroundColor: theme.colorScheme.surfaceContainerHigh,
-                    backgroundImage: _selectedFotoFile != null
-                        ? FileImage(_xFileToFile(_selectedFotoFile!))
-                        : (_fotoProfilUrl != null
-                              ? NetworkImage(_fotoProfilUrl!)
-                              : null),
-                    child: _selectedFotoFile == null && _fotoProfilUrl == null
-                        ? Icon(
-                            Icons.admin_panel_settings,
-                            size: 50,
-                            color: theme.colorScheme.onSurfaceVariant,
+                    backgroundImage: _saving
+                        ? null
+                        : _selectedFotoFile != null
+                            ? FileImage(_xFileToFile(_selectedFotoFile!))
+                            : (_fotoProfilUrl != null
+                                ? NetworkImage(_fotoProfilUrl!)
+                                : null),
+                    child: _saving
+                        ? const SizedBox(
+                            height: 30,
+                            width: 30,
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : null,
+                        : _selectedFotoFile == null && _fotoProfilUrl == null
+                            ? Icon(
+                                Icons.admin_panel_settings,
+                                size: 50,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              )
+                            : null,
                   ),
                   Positioned(
                     bottom: 0,

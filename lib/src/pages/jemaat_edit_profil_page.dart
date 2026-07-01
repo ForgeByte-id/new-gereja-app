@@ -34,6 +34,7 @@ class _JemaatEditProfilPageState extends State<JemaatEditProfilPage> {
   bool _showPasswordField = false;
   bool _loading = true;
   bool _saving = false;
+  bool _uploadingFoto = false;
   String? _error;
   String? _success;
 
@@ -98,16 +99,46 @@ class _JemaatEditProfilPageState extends State<JemaatEditProfilPage> {
   Future<void> _pickFoto() async {
     try {
       final file = await _imagePicker.pickImage(source: ImageSource.gallery);
-      if (file != null) {
-        setState(() {
-          _selectedFotoFile = file;
-        });
+      if (file == null) return;
+
+      setState(() {
+        _selectedFotoFile = file;
+        _uploadingFoto = true;
+      });
+
+      final token = widget.session.token;
+      if (token == null || token.isEmpty) return;
+
+      final payload = await _api.uploadProfilePhoto(
+        token: token,
+        filePath: file.path,
+      );
+
+      final newUrl = payload['profile_photo_url'] as String?;
+
+      if (newUrl != null && mounted) {
+        final oldUrl = _fotoProfilUrl;
+        _fotoProfilUrl = newUrl;
+        _selectedFotoFile = null;
+
+        if (oldUrl != null) {
+          final provider = NetworkImage(oldUrl);
+          await provider.evict();
+        }
       }
-    } catch (_) {
+
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Gagal memilih foto')));
+        setState(() => _uploadingFoto = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Foto profil berhasil diperbarui')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _uploadingFoto = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal upload foto')),
+        );
       }
     }
   }
@@ -232,18 +263,26 @@ class _JemaatEditProfilPageState extends State<JemaatEditProfilPage> {
                   CircleAvatar(
                     radius: 50,
                     backgroundColor: theme.colorScheme.surfaceContainerHigh,
-                    backgroundImage: _selectedFotoFile != null
-                        ? FileImage(_xFileToFile(_selectedFotoFile!))
-                        : (_fotoProfilUrl != null
-                              ? NetworkImage(_fotoProfilUrl!)
-                              : null),
-                    child: _selectedFotoFile == null && _fotoProfilUrl == null
-                        ? Icon(
-                            Icons.person,
-                            size: 50,
-                            color: theme.colorScheme.onSurfaceVariant,
+                    backgroundImage: _uploadingFoto
+                        ? null
+                        : _selectedFotoFile != null
+                            ? FileImage(_xFileToFile(_selectedFotoFile!))
+                            : (_fotoProfilUrl != null
+                                ? NetworkImage(_fotoProfilUrl!)
+                                : null),
+                    child: _uploadingFoto
+                        ? const SizedBox(
+                            height: 30,
+                            width: 30,
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : null,
+                        : _selectedFotoFile == null && _fotoProfilUrl == null
+                            ? Icon(
+                                Icons.person,
+                                size: 50,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              )
+                            : null,
                   ),
                   Positioned(
                     bottom: 0,
@@ -412,6 +451,10 @@ class _JemaatEditProfilPageState extends State<JemaatEditProfilPage> {
         ),
       ),
     );
+  }
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
