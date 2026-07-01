@@ -452,10 +452,6 @@ class _JemaatEditProfilPageState extends State<JemaatEditProfilPage> {
       ),
     );
   }
-  void _snack(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-  }
 }
 
 // Helper function to convert XFile to File
