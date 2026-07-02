@@ -129,12 +129,12 @@ class _JemaatEditProfilPageState extends State<JemaatEditProfilPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Foto profil berhasil diperbarui')),
         );
-      } else if (mounted) {
-        setState(() => _uploadingFoto = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal upload foto: server tidak mengembalikan URL foto')),
-        );
-      }
+        } else if (mounted) {
+          setState(() => _uploadingFoto = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Gagal upload foto: server tidak mengembalikan URL foto')),
+          );
+        }
     } catch (e) {
       if (mounted) {
         setState(() => _uploadingFoto = false);
