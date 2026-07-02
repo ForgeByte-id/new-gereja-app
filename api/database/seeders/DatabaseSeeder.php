@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
             ['username' => env('ADMIN_USERNAME', 'admin_yehuda')],
             [
                 'name' => env('ADMIN_NAME', 'Admin GPI Yehuda'),
-                'email' => env('ADMIN_EMAIL', 'admin@gpi-yehuda.org'),
+                'email' => env('ADMIN_EMAIL', 'admin@example.com'),
                 'password' => Hash::make('password123'),
                 'role' => 'admin',
                 'nomor_kk' => '5171010000000001',
@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
             ['username' => 'jemaat_yehuda'],
             [
                 'name' => 'Jemaat GPI Yehuda',
-                'email' => 'jemaat@gpi-yehuda.org',
+                'email' => 'jemaat@example.com',
                 'password' => Hash::make('password123'),
                 'role' => 'jemaat',
                 'nomor_kk' => '5171010000000002',
