@@ -125,8 +125,10 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
           final provider = NetworkImage(oldUrl);
           await provider.evict();
         }
-        setState(() => _saving = false);
-        _snack('Foto profil berhasil diperbarui');
+        if (mounted) {
+          setState(() => _saving = false);
+          _snack('Foto profil berhasil diperbarui');
+        }
       } else if (mounted) {
         setState(() => _saving = false);
         _snack('Gagal upload foto: server tidak mengembalikan URL foto');
