@@ -42,6 +42,6 @@ class ChurchProfileController extends Controller
 
         Cache::forget('church_profile');
 
-        return $this->successResponse($profile, 'Profil gereja berhasil disimpan');
+        return $this->successResponse($profile->toArray(), 'Profil gereja berhasil disimpan');
     }
 }

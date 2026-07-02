@@ -125,12 +125,14 @@ class _JemaatEditProfilPageState extends State<JemaatEditProfilPage> {
           final provider = NetworkImage(oldUrl);
           await provider.evict();
         }
-      }
-
-      if (mounted) {
         setState(() => _uploadingFoto = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Foto profil berhasil diperbarui')),
+        );
+      } else if (mounted) {
+        setState(() => _uploadingFoto = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal upload foto: server tidak mengembalikan URL foto')),
         );
       }
     } catch (e) {
@@ -165,7 +167,7 @@ class _JemaatEditProfilPageState extends State<JemaatEditProfilPage> {
         'phone_number': _phoneController.text.trim(),
         'jenis_kelamin': _jenisKelamin,
         'alamat': _alamatController.text.trim(),
-        'usia': ?usia,
+        'usia': usia,
         if (_passwordController.text.isNotEmpty) ...{
           'password': _passwordController.text,
           'password_confirmation': _passwordController.text,

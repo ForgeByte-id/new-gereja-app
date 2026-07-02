@@ -60,7 +60,8 @@ class ServiceController extends Controller
                 ->where('is_active', true)
                 ->orderBy('sort_order')
                 ->orderBy('name')
-                ->get(['code', 'name']);
+                ->get(['code', 'name'])
+                ->toArray();
         });
 
         return $this->successResponse($categories, 'Daftar kategori layanan berhasil diambil');
@@ -71,7 +72,8 @@ class ServiceController extends Controller
         $templates = Cache::remember('service_templates.all', 600, function () {
             return ServiceFormTemplate::query()
                 ->orderBy('category')
-                ->get(['id', 'category', 'name', 'fields', 'is_active']);
+                ->get(['id', 'category', 'name', 'fields', 'is_active'])
+                ->toArray();
         });
 
         return $this->successResponse($templates, 'Daftar template layanan berhasil diambil');
@@ -81,9 +83,10 @@ class ServiceController extends Controller
     {
         $cacheKey = 'service_templates.' . $category;
         $template = Cache::remember($cacheKey, 600, function () use ($category) {
-            return ServiceFormTemplate::query()
+            $row = ServiceFormTemplate::query()
                 ->where('category', $category)
                 ->first();
+            return $row ? $row->toArray() : null;
         });
 
         if (! $template) {

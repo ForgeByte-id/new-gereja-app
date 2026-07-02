@@ -104,7 +104,10 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
       });
 
       final token = widget.session.token;
-      if (token == null || token.isEmpty) return;
+      if (token == null || token.isEmpty) {
+        setState(() => _saving = false);
+        return;
+      }
 
       final payload = await _api.uploadProfilePhoto(
         token: token,
@@ -122,11 +125,11 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
           final provider = NetworkImage(oldUrl);
           await provider.evict();
         }
-      }
-
-      if (mounted) {
         setState(() => _saving = false);
         _snack('Foto profil berhasil diperbarui');
+      } else if (mounted) {
+        setState(() => _saving = false);
+        _snack('Gagal upload foto: server tidak mengembalikan URL foto');
       }
     } catch (_) {
       if (mounted) {
@@ -158,7 +161,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
         'phone_number': _phoneController.text.trim(),
         'jenis_kelamin': _jenisKelamin,
         'alamat': _alamatController.text.trim(),
-        'usia': ?usia,
+        'usia': usia,
         if (_passwordController.text.isNotEmpty) ...{
           'password': _passwordController.text,
           'password_confirmation': _passwordController.text,

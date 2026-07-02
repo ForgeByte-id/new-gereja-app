@@ -1307,15 +1307,40 @@ class _JemaatDashboardPageState extends State<JemaatDashboardPage> {
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: 32,
-                      backgroundImage:
-                          (_fotoProfilUrl != null && _fotoProfilUrl!.isNotEmpty)
-                          ? NetworkImage(_fotoProfilUrl!)
-                          : null,
-                      child: (_fotoProfilUrl == null || _fotoProfilUrl!.isEmpty)
-                          ? const Icon(Icons.person, size: 32)
-                          : null,
+                    SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: (_fotoProfilUrl != null && _fotoProfilUrl!.isNotEmpty)
+                          ? ClipOval(
+                              child: Image.network(
+                                _fotoProfilUrl!,
+                                width: 64,
+                                height: 64,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  debugPrint('Profile photo error: $error');
+                                  return const CircleAvatar(
+                                    radius: 32,
+                                    child: Icon(Icons.person, size: 32),
+                                  );
+                                },
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return const CircleAvatar(
+                                    radius: 32,
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          : const CircleAvatar(
+                              radius: 32,
+                              child: Icon(Icons.person, size: 32),
+                            ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(

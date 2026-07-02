@@ -774,7 +774,7 @@ class ApiClient {
         'phone_number': phoneNumber,
         if (jenisKelamin != null && jenisKelamin.isNotEmpty)
           'jenis_kelamin': jenisKelamin,
-        'usia': ?usia,
+        'usia': usia,
         if (alamat != null && alamat.isNotEmpty) 'alamat': alamat,
         if (status != null && status.isNotEmpty) 'status': status,
       }),

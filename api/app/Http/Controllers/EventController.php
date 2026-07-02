@@ -25,7 +25,8 @@ class EventController extends Controller
                 ->where('is_active', true)
                 ->orderBy('sort_order')
                 ->orderBy('name')
-                ->get(['code', 'name']);
+                ->get(['code', 'name'])
+                ->toArray();
         });
 
         return $this->successResponse($categories, 'Daftar kategori event berhasil diambil');
